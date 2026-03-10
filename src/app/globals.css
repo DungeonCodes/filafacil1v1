@@ -13,3 +13,14 @@ body {
   color: #020617;
   font-family: "Segoe UI", "Tahoma", "Geneva", "Verdana", sans-serif;
 }
+
+:root[data-high-contrast="true"] body {
+  background: #000;
+  color: #fff;
+}
+
+:root[data-high-contrast="true"] *:focus-visible {
+  outline: 3px solid #ffeb3b;
+  outline-offset: 2px;
+  box-shadow: none !important;
+}

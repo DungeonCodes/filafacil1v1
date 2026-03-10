@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { HighContrastProvider } from "@/features/accessibility/HighContrastProvider";
 
 export const metadata: Metadata = {
   title: "FilaFacil Acessivel",
@@ -13,7 +14,9 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <HighContrastProvider>{children}</HighContrastProvider>
+      </body>
     </html>
   );
 }
