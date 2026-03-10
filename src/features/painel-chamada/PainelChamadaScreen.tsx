@@ -136,7 +136,7 @@ export function PainelChamadaScreen() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-8 md:px-8">
-      <MainTopNav activePath="/painel-chamada" />
+      <MainTopNav activePath="/painel-chamada" showLogout />
 
       <div className="sr-only" aria-live="assertive" aria-atomic="true">
         {liveMessage}

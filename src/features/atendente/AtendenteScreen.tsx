@@ -205,7 +205,7 @@ export function AtendenteScreen() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-8 md:px-8">
-      <MainTopNav activePath="/atendente" />
+      <MainTopNav activePath="/atendente" showLogout />
 
       <section className="rounded-3xl border-4 border-slate-900 bg-white/95 p-6 shadow-xl md:p-10">
         <header className="mb-7">

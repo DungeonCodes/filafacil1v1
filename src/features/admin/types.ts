@@ -28,3 +28,14 @@ export interface AdminDashboardSnapshot {
 }
 
 export type AsyncResult<T> = { ok: true; data: T } | { ok: false; error: string };
+
+export type AccessProfile = "attendant" | "doctor" | "admin";
+
+export interface ManagedUserView {
+  id: number;
+  username: string;
+  role: AccessProfile;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

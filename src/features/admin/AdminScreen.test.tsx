@@ -8,6 +8,10 @@ vi.mock("./api", () => ({
   loadAdminDashboardSnapshot: vi.fn()
 }));
 
+vi.mock("./UserManagementSection", () => ({
+  UserManagementSection: () => <div>Gestao de usuarios</div>
+}));
+
 vi.mock("recharts", () => {
   const MockComponent = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
 
