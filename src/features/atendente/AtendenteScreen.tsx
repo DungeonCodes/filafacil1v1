@@ -6,6 +6,7 @@ import { formatTicket } from "@/lib/tickets/formatTicket";
 import { callNextAttendant, forwardTicketToDoctor, loadAttendantSnapshot, recallCurrentTicket } from "./api";
 import type { AttendantSnapshot } from "./types";
 import type { QueueOption } from "@/features/totem/types";
+import { MainTopNav } from "@/components/MainTopNav";
 
 const POLL_INTERVAL_MS = 3000;
 const INITIAL_SNAPSHOT: AttendantSnapshot = {
@@ -204,6 +205,8 @@ export function AtendenteScreen() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-8 md:px-8">
+      <MainTopNav activePath="/atendente" />
+
       <section className="rounded-3xl border-4 border-slate-900 bg-white/95 p-6 shadow-xl md:p-10">
         <header className="mb-7">
           <h1 className="text-4xl font-black text-slate-950 md:text-5xl">Painel do Atendente</h1>

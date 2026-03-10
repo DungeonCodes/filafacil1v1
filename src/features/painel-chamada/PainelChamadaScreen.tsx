@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { loadPanelSnapshot } from "./api";
 import type { NowCallingTicket, PanelSnapshot, RecentCallItem, WaitingTicketItem } from "./types";
 import { formatTicket } from "@/lib/tickets/formatTicket";
+import { MainTopNav } from "@/components/MainTopNav";
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -135,6 +136,8 @@ export function PainelChamadaScreen() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-8 md:px-8">
+      <MainTopNav activePath="/painel-chamada" />
+
       <div className="sr-only" aria-live="assertive" aria-atomic="true">
         {liveMessage}
       </div>

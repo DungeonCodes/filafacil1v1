@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import { loadAdminDashboardSnapshot } from "./api";
 import type { AdminDashboardSnapshot } from "./types";
+import { MainTopNav } from "@/components/MainTopNav";
 
 const POLL_INTERVAL_MS = 15000;
 const CHART_COLORS = ["#0f766e", "#0284c7", "#22c55e", "#f59e0b", "#ef4444", "#6366f1"];
@@ -113,6 +114,8 @@ export function AdminScreen() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-8 md:px-8">
+      <MainTopNav activePath="/admin" />
+
       <section className="rounded-3xl border-4 border-slate-900 bg-white/95 p-6 shadow-xl md:p-10">
         <header className="mb-7">
           <h1 className="text-4xl font-black text-slate-950 md:text-5xl">Dashboard Administrativo</h1>
