@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createNextTicket, loadQueues } from "./api";
 import type { QueueOption } from "./types";
 import { formatTicket } from "@/lib/tickets/formatTicket";
+import { MainTopNav } from "@/components/MainTopNav";
 
 type FeedbackState =
   | { kind: "success"; message: string }
@@ -80,6 +81,8 @@ export function TotemScreen() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-10">
+      <MainTopNav activePath="/totem" />
+
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {liveMessage}
       </div>

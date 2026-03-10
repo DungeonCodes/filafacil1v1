@@ -6,6 +6,7 @@ import type { QueueOption } from "@/features/totem/types";
 import { formatTicket } from "@/lib/tickets/formatTicket";
 import { callNextDoctor, finishDoctorTicket, loadDoctorSnapshot } from "./api";
 import type { DoctorSnapshot } from "./types";
+import { MainTopNav } from "@/components/MainTopNav";
 
 const POLL_INTERVAL_MS = 3000;
 const INITIAL_SNAPSHOT: DoctorSnapshot = {
@@ -190,6 +191,8 @@ export function MedicoScreen() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-8 md:px-8">
+      <MainTopNav activePath="/medico" />
+
       <section className="rounded-3xl border-4 border-slate-900 bg-white/95 p-6 shadow-xl md:p-10">
         <header className="mb-7">
           <h1 className="text-4xl font-black text-slate-950 md:text-5xl">Tela do Medico</h1>
