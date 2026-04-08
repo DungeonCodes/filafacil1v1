@@ -17,7 +17,7 @@ type MainTopNavProps = {
 
 export function MainTopNav({ activePath, showLogout = false }: MainTopNavProps) {
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border-2 border-slate-800 bg-white/90 p-2 shadow-sm">
+    <div className="mb-5 flex flex-wrap items-center gap-3 rounded-[2rem] border border-white/75 bg-white/88 p-3 shadow-[0_24px_70px_-38px_rgba(15,23,42,0.22)] backdrop-blur-xl">
       <nav aria-label="Navegacao principal do sistema" className="min-w-0 flex-1 overflow-x-auto">
         <ul className="flex min-w-max gap-2">
           {MAIN_ROUTES.map((route) => {
@@ -27,10 +27,10 @@ export function MainTopNav({ activePath, showLogout = false }: MainTopNavProps) 
                 <Link
                   href={route.href}
                   aria-current={isActive ? "page" : undefined}
-                  className={`inline-flex min-h-11 items-center justify-center rounded-xl border-2 px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 ${
+                  className={`inline-flex min-h-11 items-center justify-center rounded-[1.1rem] border px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 ${
                     isActive
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-300 bg-white text-slate-800 hover:border-slate-500 hover:bg-slate-100"
+                      ? "border-slate-900 bg-slate-900 text-white shadow-[0_16px_34px_-24px_rgba(15,23,42,0.65)]"
+                      : "border-white/80 bg-white/90 text-slate-700 shadow-[0_14px_30px_-24px_rgba(15,23,42,0.18)] hover:border-sky-200 hover:bg-sky-50 hover:text-slate-900"
                   }`}
                 >
                   {route.label}
@@ -45,7 +45,7 @@ export function MainTopNav({ activePath, showLogout = false }: MainTopNavProps) 
         <form action="/api/auth/logout" method="post">
           <button
             type="submit"
-            className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-rose-700 bg-rose-700 px-4 text-sm font-bold text-white transition hover:bg-rose-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
+            className="inline-flex min-h-11 items-center justify-center rounded-[1.1rem] border border-rose-600 bg-rose-600 px-4 text-sm font-black text-white shadow-[0_18px_34px_-24px_rgba(225,29,72,0.5)] transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
           >
             Sair
           </button>
@@ -53,7 +53,7 @@ export function MainTopNav({ activePath, showLogout = false }: MainTopNavProps) 
       ) : (
         <Link
           href="/login"
-          className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-slate-900 bg-slate-900 px-4 text-sm font-bold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
+          className="inline-flex min-h-11 items-center justify-center rounded-[1.1rem] border border-slate-900 bg-slate-900 px-4 text-sm font-black text-white shadow-[0_16px_34px_-24px_rgba(15,23,42,0.65)] transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
         >
           Login
         </Link>

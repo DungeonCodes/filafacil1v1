@@ -31,10 +31,16 @@ describe("TotemScreen", () => {
     });
 
     render(<TotemScreen />);
+    const user = userEvent.setup();
 
     expect(screen.getByText("Carregando opcoes de atendimento...")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Gerar senha para Clinico Geral" })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Gerar senha para Pediatria" })).toBeInTheDocument();
+    expect(screen.queryByText("Selecionar")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Mostrar informacoes sobre Clinico Geral" }));
+
+    expect(await screen.findByText("Consultas e triagem inicial.")).toBeInTheDocument();
   });
 
   it("generates and displays formatted ticket", async () => {
