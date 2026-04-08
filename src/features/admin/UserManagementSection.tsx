@@ -153,43 +153,50 @@ export function UserManagementSection() {
   );
 
   return (
-    <section className="mt-6 rounded-3xl border-2 border-slate-800 bg-slate-50 p-5">
-      <h2 className="text-2xl font-black text-slate-900">Gestao de usuarios</h2>
-      <p className="mt-2 text-sm font-semibold text-slate-700">
-        Cadastro de logins, perfil de acesso, ativacao e redefinicao de senha.
-      </p>
+    <section className="mt-6 rounded-[1.9rem] border border-white/80 bg-white/82 p-5 shadow-[0_20px_60px_-42px_rgba(15,23,42,0.22)] backdrop-blur-md">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-black tracking-tight text-slate-900">Gestao de usuarios</h2>
+          <p className="mt-2 text-sm font-semibold text-slate-700">
+            Cadastro de logins, perfil de acesso, ativacao e redefinicao de senha.
+          </p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-slate-600">
+          Acessos
+        </span>
+      </div>
 
       {feedback && (
         <p
           role={feedback.kind === "error" ? "alert" : "status"}
-          className={`mt-4 rounded-xl border-2 px-4 py-3 text-sm font-semibold ${
+          className={`mt-4 rounded-[1.25rem] border px-4 py-3 text-sm font-semibold shadow-[0_18px_40px_-34px_rgba(15,23,42,0.16)] ${
             feedback.kind === "error"
-              ? "border-rose-700 bg-rose-50 text-rose-900"
-              : "border-emerald-700 bg-emerald-50 text-emerald-900"
+              ? "border-rose-200 bg-rose-50 text-rose-900"
+              : "border-emerald-200 bg-emerald-50 text-emerald-900"
           }`}
         >
           {feedback.message}
         </p>
       )}
 
-      <form onSubmit={(event) => void handleCreateUser(event)} className="mt-4 grid gap-3 rounded-2xl border-2 border-slate-700 bg-white p-4 md:grid-cols-5">
+      <form onSubmit={(event) => void handleCreateUser(event)} className="mt-4 grid gap-3 rounded-[1.5rem] border border-white/80 bg-white p-4 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.16)] md:grid-cols-5">
         <label className="flex flex-col gap-2 md:col-span-2">
-          <span className="text-xs font-bold uppercase tracking-wide text-slate-700">Usuario</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-600">Usuario</span>
           <input
             type="text"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             required
-            className="min-h-11 rounded-xl border-2 border-slate-800 bg-white px-3 text-sm font-semibold text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
+            className="min-h-11 rounded-[1rem] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.16)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
           />
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-xs font-bold uppercase tracking-wide text-slate-700">Perfil</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-600">Perfil</span>
           <select
             value={role}
             onChange={(event) => setRole(event.target.value as AccessProfile)}
-            className="min-h-11 rounded-xl border-2 border-slate-800 bg-white px-3 text-sm font-semibold text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
+            className="min-h-11 rounded-[1rem] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.16)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
           >
             {PROFILE_OPTIONS.map((profile) => (
               <option key={profile.value} value={profile.value}>
@@ -200,13 +207,13 @@ export function UserManagementSection() {
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-xs font-bold uppercase tracking-wide text-slate-700">Senha inicial</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-600">Senha inicial</span>
           <input
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
-            className="min-h-11 rounded-xl border-2 border-slate-800 bg-white px-3 text-sm font-semibold text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
+            className="min-h-11 rounded-[1rem] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.16)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
           />
         </label>
 
@@ -215,7 +222,7 @@ export function UserManagementSection() {
             type="checkbox"
             checked={isActive}
             onChange={(event) => setIsActive(event.target.checked)}
-            className="h-4 w-4 rounded border-2 border-slate-700"
+            className="h-4 w-4 rounded border border-slate-400"
           />
           <span className="text-sm font-semibold text-slate-800">Ativo</span>
         </label>
@@ -224,7 +231,7 @@ export function UserManagementSection() {
           <button
             type="submit"
             disabled={isSubmittingCreate}
-            className="min-h-11 rounded-xl border-2 border-slate-900 bg-slate-900 px-4 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-400 disabled:bg-slate-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
+            className="min-h-11 rounded-[1rem] border border-slate-900 bg-slate-900 px-4 text-sm font-black text-white shadow-[0_16px_34px_-24px_rgba(15,23,42,0.6)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
           >
             {isSubmittingCreate ? "Criando..." : "Criar novo login"}
           </button>
@@ -232,9 +239,9 @@ export function UserManagementSection() {
       </form>
 
       {isLoadingUsers ? (
-        <p className="mt-4 rounded-xl border border-slate-300 bg-white px-4 py-4 text-sm font-semibold text-slate-700">Carregando usuarios...</p>
+        <p className="mt-4 rounded-[1.25rem] border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700">Carregando usuarios...</p>
       ) : sortedUsers.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-slate-300 bg-white px-4 py-4 text-sm font-semibold text-slate-700">
+        <p className="mt-4 rounded-[1.25rem] border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700">
           Nenhum usuario cadastrado.
         </p>
       ) : (
@@ -242,22 +249,20 @@ export function UserManagementSection() {
           {sortedUsers.map((user) => {
             const isRunning = runningActionUserId === user.id;
             return (
-              <li key={user.id} className="rounded-xl border border-slate-300 bg-white p-4">
+              <li key={user.id} className="rounded-[1.35rem] border border-slate-200 bg-white p-4 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.2)]">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-lg font-black text-slate-950">{user.username}</p>
+                  <p className="text-lg font-black tracking-tight text-slate-950">{user.username}</p>
                   <span
-                    className={`rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${
-                      user.isActive
-                        ? "border-emerald-600 bg-emerald-50 text-emerald-800"
-                        : "border-slate-500 bg-slate-100 text-slate-700"
+                    className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${
+                      user.isActive ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-700"
                     }`}
                   >
                     {user.isActive ? "Ativo" : "Inativo"}
                   </span>
                 </div>
 
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Perfil: {getRoleLabel(user.role)} • Atualizado em {formatDateTime(user.updatedAt)}
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Perfil: {getRoleLabel(user.role)} - Atualizado em {formatDateTime(user.updatedAt)}
                 </p>
 
                 <div className="mt-3 flex flex-wrap items-end gap-2">
@@ -265,13 +270,13 @@ export function UserManagementSection() {
                     type="button"
                     disabled={isRunning}
                     onClick={() => void handleToggleStatus(user)}
-                    className="min-h-10 rounded-lg border-2 border-slate-800 bg-white px-3 text-xs font-black text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-slate-400 disabled:text-slate-400 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
+                    className="min-h-10 rounded-[0.95rem] border border-white/80 bg-white px-3 text-xs font-black text-slate-900 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.18)] transition hover:border-sky-200 hover:bg-sky-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
                   >
                     {user.isActive ? "Desativar" : "Ativar"}
                   </button>
 
                   <label className="flex min-w-52 flex-1 flex-col gap-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">Nova senha</span>
+                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Nova senha</span>
                     <input
                       type="password"
                       value={resetPasswordsByUser[user.id] ?? ""}
@@ -281,7 +286,7 @@ export function UserManagementSection() {
                           [user.id]: event.target.value
                         }))
                       }
-                      className="min-h-10 rounded-lg border-2 border-slate-800 bg-white px-3 text-xs font-semibold text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
+                      className="min-h-10 rounded-[0.95rem] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-950 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.16)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
                     />
                   </label>
 
@@ -289,7 +294,7 @@ export function UserManagementSection() {
                     type="button"
                     disabled={isRunning}
                     onClick={() => void handleResetPassword(user)}
-                    className="min-h-10 rounded-lg border-2 border-slate-900 bg-slate-900 px-3 text-xs font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-400 disabled:bg-slate-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
+                    className="min-h-10 rounded-[0.95rem] border border-slate-900 bg-slate-900 px-3 text-xs font-black text-white shadow-[0_16px_34px_-24px_rgba(15,23,42,0.6)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
                   >
                     Redefinir senha
                   </button>
