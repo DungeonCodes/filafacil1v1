@@ -4,9 +4,13 @@ import type {
   AttendantSnapshot,
   AttendantTicket,
   CallNextAttendantInput,
-  ForwardTicketInput,
+  FinishInitialAttendanceInput,
   RecallTicketInput
 } from "./types";
+
+// The current RPC contract still expects a destination label when moving the
+// ticket into the doctor flow, even though the attendant no longer chooses it.
+const DEFAULT_MEDICAL_DESTINATION_LABEL = "Consultorio 001";
 
 type TicketRow = {
   id?: unknown;
@@ -146,22 +150,22 @@ export async function callNextAttendant(input: CallNextAttendantInput): Promise<
   }
 }
 
-export async function forwardTicketToDoctor(input: ForwardTicketInput): Promise<AsyncResult<null>> {
+export async function finishInitialAttendance(input: FinishInitialAttendanceInput): Promise<AsyncResult<null>> {
   try {
     const supabase = getSupabaseBrowserClient();
     const { error } = await supabase.rpc("forward_ticket_to_doctor", {
       p_ticket_id: input.ticketId,
-      p_destination_label: input.destinationLabel,
+      p_destination_label: DEFAULT_MEDICAL_DESTINATION_LABEL,
       p_called_by: input.calledBy
     });
 
     if (error) {
-      return { ok: false, error: getErrorMessage(error, "Nao foi possivel encaminhar a senha para o medico.") };
+      return { ok: false, error: getErrorMessage(error, "Nao foi possivel finalizar o atendimento inicial.") };
     }
 
     return { ok: true, data: null };
   } catch (error) {
-    return { ok: false, error: getErrorMessage(error, "Erro inesperado ao encaminhar a senha.") };
+    return { ok: false, error: getErrorMessage(error, "Erro inesperado ao finalizar o atendimento inicial.") };
   }
 }
 

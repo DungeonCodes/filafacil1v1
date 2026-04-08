@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AtendenteScreen } from "./AtendenteScreen";
 import { loadQueues } from "@/features/totem/api";
-import { callNextAttendant, forwardTicketToDoctor, loadAttendantSnapshot, recallCurrentTicket } from "./api";
+import { callNextAttendant, finishInitialAttendance, loadAttendantSnapshot, recallCurrentTicket } from "./api";
 
 vi.mock("@/features/totem/api", () => ({
   loadQueues: vi.fn()
@@ -12,14 +12,14 @@ vi.mock("@/features/totem/api", () => ({
 vi.mock("./api", () => ({
   loadAttendantSnapshot: vi.fn(),
   callNextAttendant: vi.fn(),
-  forwardTicketToDoctor: vi.fn(),
+  finishInitialAttendance: vi.fn(),
   recallCurrentTicket: vi.fn()
 }));
 
 const mockedLoadQueues = vi.mocked(loadQueues);
 const mockedLoadAttendantSnapshot = vi.mocked(loadAttendantSnapshot);
 const mockedCallNextAttendant = vi.mocked(callNextAttendant);
-const mockedForwardTicketToDoctor = vi.mocked(forwardTicketToDoctor);
+const mockedFinishInitialAttendance = vi.mocked(finishInitialAttendance);
 const mockedRecallCurrentTicket = vi.mocked(recallCurrentTicket);
 
 function setupDefaultMocks() {
@@ -55,7 +55,7 @@ function setupDefaultMocks() {
   });
 
   mockedCallNextAttendant.mockResolvedValue({ ok: true, data: null });
-  mockedForwardTicketToDoctor.mockResolvedValue({ ok: true, data: null });
+  mockedFinishInitialAttendance.mockResolvedValue({ ok: true, data: null });
   mockedRecallCurrentTicket.mockResolvedValue({ ok: true, data: null });
 }
 
@@ -86,13 +86,14 @@ describe("AtendenteScreen", () => {
     });
   });
 
-  it("forwards and recalls the current ticket", async () => {
+  it("finishes the initial attendance and recalls the current ticket", async () => {
     render(<AtendenteScreen />);
     const user = userEvent.setup();
 
     await screen.findByText("CG-001");
+    expect(screen.queryByText("Encaminhar para")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Rechamar" }));
-    await user.click(screen.getByRole("button", { name: "Encaminhar" }));
+    await user.click(screen.getByRole("button", { name: "Finalizar atendimento" }));
 
     expect(mockedRecallCurrentTicket).toHaveBeenCalledWith({
       ticketId: 10,
@@ -100,9 +101,8 @@ describe("AtendenteScreen", () => {
       calledBy: "Atendente"
     });
 
-    expect(mockedForwardTicketToDoctor).toHaveBeenCalledWith({
+    expect(mockedFinishInitialAttendance).toHaveBeenCalledWith({
       ticketId: 10,
-      destinationLabel: "Consultorio 001",
       calledBy: "Atendente"
     });
   });
