@@ -15,6 +15,7 @@ import {
   YAxis
 } from "recharts";
 import { loadAdminDashboardSnapshot } from "./api";
+import { resetOperationalPanels } from "./operationsApi";
 import type { AdminDashboardSnapshot } from "./types";
 import { MainTopNav } from "@/components/MainTopNav";
 import { UserManagementSection } from "./UserManagementSection";
@@ -63,12 +64,20 @@ type FeedbackState =
   | { kind: "error"; message: string }
   | null;
 
+type OperationFeedbackState =
+  | { kind: "success"; message: string }
+  | { kind: "error"; message: string }
+  | null;
+
 export function AdminScreen() {
   const [snapshot, setSnapshot] = useState<AdminDashboardSnapshot>(INITIAL_SNAPSHOT);
   const [isLoading, setIsLoading] = useState(true);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [operationFeedback, setOperationFeedback] = useState<OperationFeedbackState>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [isResetRunning, setIsResetRunning] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -113,6 +122,29 @@ export function AdminScreen() {
   const hasDataForCharts =
     snapshot.queueDistribution.length > 0 || snapshot.hourlyVolume.length > 0 || snapshot.stageFlow.length > 0;
 
+  async function handleConfirmPanelReset() {
+    setIsResetRunning(true);
+    const result = await resetOperationalPanels();
+
+    if (!result.ok) {
+      setOperationFeedback({ kind: "error", message: result.error });
+      setIsResetRunning(false);
+      return;
+    }
+
+    const hasAnyReset = result.data.clearedOperationalTickets > 0 || result.data.clearedRecentCalls;
+
+    setOperationFeedback({
+      kind: "success",
+      message: hasAnyReset
+        ? "Paineis operacionais limpos com sucesso. Os tickets visiveis da operacao atual foram encerrados e as chamadas visuais do dia foram removidas."
+        : "Nao havia estado operacional atual para limpar."
+    });
+    setIsResetConfirmOpen(false);
+    setReloadVersion((value) => value + 1);
+    setIsResetRunning(false);
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-8 md:px-8">
       <MainTopNav activePath="/admin" showLogout />
@@ -143,6 +175,75 @@ export function AdminScreen() {
             </button>
           </div>
         )}
+
+        <section className="mb-6 rounded-3xl border-2 border-slate-800 bg-slate-50 p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-3xl">
+              <h2 className="text-xl font-black text-slate-950">Limpar painis de atendimento</h2>
+              <p className="mt-2 text-base font-semibold text-slate-700">
+                Limpa ao mesmo tempo o estado exibido em <span className="font-black text-slate-950">/painel-chamada</span>,{" "}
+                <span className="font-black text-slate-950">/atendente</span> e <span className="font-black text-slate-950">/medico</span>.
+                A limpeza encerra os tickets operacionais visiveis do dia e remove as chamadas visuais atuais para deixar os tres painis vazios ao mesmo tempo.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsResetConfirmOpen(true);
+                setOperationFeedback(null);
+              }}
+              disabled={isResetRunning}
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-rose-700 bg-rose-600 px-5 text-base font-black text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:border-slate-400 disabled:bg-slate-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
+            >
+              Limpar painis de atendimento
+            </button>
+          </div>
+
+          {isResetConfirmOpen && (
+            <div className="mt-4 rounded-2xl border-2 border-amber-400 bg-amber-50 p-4">
+              <p className="text-base font-black text-amber-950">Confirmacao obrigatoria</p>
+              <p className="mt-2 text-sm font-semibold text-amber-900">
+                Esta limpeza zera as chamadas visuais atuais do <span className="font-black">/painel-chamada</span> e remove o atendimento em andamento do{" "}
+                <span className="font-black">/atendente</span> e do <span className="font-black">/medico</span>. Os tickets operacionais visiveis do dia serao encerrados e o historico visual do dia sera limpo para evitar estado antigo pendurado.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmPanelReset()}
+                  disabled={isResetRunning}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-slate-900 bg-slate-900 px-4 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-400 disabled:bg-slate-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
+                >
+                  {isResetRunning ? "Limpando..." : "Confirmar limpeza"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsResetConfirmOpen(false);
+                    setOperationFeedback(null);
+                  }}
+                  disabled={isResetRunning}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-slate-900 bg-white px-4 text-sm font-black text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-slate-400 disabled:text-slate-400 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {operationFeedback && (
+            <div
+              className={`mt-4 rounded-2xl border-2 px-4 py-4 text-base font-semibold ${
+                operationFeedback.kind === "error"
+                  ? "border-rose-700 bg-rose-50 text-rose-900"
+                  : "border-emerald-700 bg-emerald-50 text-emerald-900"
+              }`}
+              role={operationFeedback.kind === "error" ? "alert" : "status"}
+            >
+              {operationFeedback.message}
+            </div>
+          )}
+        </section>
 
         <section aria-label="Indicadores principais" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <article className="rounded-2xl border-2 border-slate-800 bg-slate-50 p-5">
