@@ -1,8 +1,7 @@
 import type { AsyncResult } from "./types";
 
 type ResetPanelsResponse = {
-  resetAttendantTickets: number;
-  resetDoctorTickets: number;
+  clearedOperationalTickets: number;
   clearedRecentCalls: boolean;
 };
 
@@ -22,17 +21,15 @@ function toResetPanelsResponse(value: unknown): ResetPanelsResponse | null {
     return null;
   }
 
-  const resetAttendantTickets = Number(value.resetAttendantTickets);
-  const resetDoctorTickets = Number(value.resetDoctorTickets);
+  const clearedOperationalTickets = Number(value.clearedOperationalTickets);
   const clearedRecentCalls = value.clearedRecentCalls === true;
 
-  if (!Number.isFinite(resetAttendantTickets) || !Number.isFinite(resetDoctorTickets)) {
+  if (!Number.isFinite(clearedOperationalTickets)) {
     return null;
   }
 
   return {
-    resetAttendantTickets,
-    resetDoctorTickets,
+    clearedOperationalTickets,
     clearedRecentCalls
   };
 }

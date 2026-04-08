@@ -3,7 +3,9 @@ import { requireApiAuthenticatedUser } from "@/lib/auth/api-guards";
 import { getSupabaseServiceClient } from "@/lib/supabase/service";
 import { getCurrentBusinessDate } from "@/lib/tickets/businessDate";
 
-type TicketStage = "called_attendant" | "called_doctor" | "waiting_attendant" | "waiting_doctor" | string;
+const OPERATIONAL_STAGES = ["waiting_attendant", "called_attendant", "waiting_doctor", "called_doctor"] as const;
+
+type TicketStage = (typeof OPERATIONAL_STAGES)[number] | "finished" | string;
 
 type TicketRow = {
   id?: unknown;
@@ -35,6 +37,7 @@ export async function POST() {
 
   const supabase = getSupabaseServiceClient();
   const businessDate = getCurrentBusinessDate();
+  const finishedAt = new Date().toISOString();
 
   const { data: ticketsData, error: ticketsError } = await supabase
     .from("tickets")
@@ -61,42 +64,23 @@ export async function POST() {
   });
 
   const businessDayTicketIds = operationalTickets.map((ticket) => ticket.id);
-  const calledAttendantIds = operationalTickets
-    .filter((ticket) => ticket.stage === "called_attendant")
-    .map((ticket) => ticket.id);
-  const calledDoctorIds = operationalTickets
-    .filter((ticket) => ticket.stage === "called_doctor")
+  const operationalTicketIds = operationalTickets
+    .filter((ticket) => OPERATIONAL_STAGES.includes(ticket.stage as (typeof OPERATIONAL_STAGES)[number]))
     .map((ticket) => ticket.id);
 
-  if (calledAttendantIds.length > 0) {
+  if (operationalTicketIds.length > 0) {
     const { error } = await supabase
       .from("tickets")
       .update({
-        current_stage: "waiting_attendant",
+        current_stage: "finished",
+        finished_at: finishedAt,
         called_at: null,
         current_consulting_room: null
       })
-      .in("id", calledAttendantIds)
-      .eq("current_stage", "called_attendant");
+      .in("id", operationalTicketIds);
 
     if (error) {
-      return NextResponse.json({ error: "Nao foi possivel limpar o atendimento inicial em andamento." }, { status: 500 });
-    }
-  }
-
-  if (calledDoctorIds.length > 0) {
-    const { error } = await supabase
-      .from("tickets")
-      .update({
-        current_stage: "waiting_doctor",
-        called_at: null,
-        current_consulting_room: null
-      })
-      .in("id", calledDoctorIds)
-      .eq("current_stage", "called_doctor");
-
-    if (error) {
-      return NextResponse.json({ error: "Nao foi possivel limpar o atendimento medico em andamento." }, { status: 500 });
+      return NextResponse.json({ error: "Nao foi possivel encerrar o estado operacional visivel dos painis." }, { status: 500 });
     }
   }
 
@@ -110,8 +94,7 @@ export async function POST() {
 
   return NextResponse.json({
     data: {
-      resetAttendantTickets: calledAttendantIds.length,
-      resetDoctorTickets: calledDoctorIds.length,
+      clearedOperationalTickets: operationalTicketIds.length,
       clearedRecentCalls: businessDayTicketIds.length > 0
     }
   });

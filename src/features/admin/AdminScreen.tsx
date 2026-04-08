@@ -132,13 +132,12 @@ export function AdminScreen() {
       return;
     }
 
-    const hasAnyReset =
-      result.data.resetAttendantTickets > 0 || result.data.resetDoctorTickets > 0 || result.data.clearedRecentCalls;
+    const hasAnyReset = result.data.clearedOperationalTickets > 0 || result.data.clearedRecentCalls;
 
     setOperationFeedback({
       kind: "success",
       message: hasAnyReset
-        ? "Paineis operacionais limpos com sucesso. As chamadas visuais do dia foram removidas e atendimentos em andamento voltaram para a fila."
+        ? "Paineis operacionais limpos com sucesso. Os tickets visiveis da operacao atual foram encerrados e as chamadas visuais do dia foram removidas."
         : "Nao havia estado operacional atual para limpar."
     });
     setIsResetConfirmOpen(false);
@@ -184,7 +183,7 @@ export function AdminScreen() {
               <p className="mt-2 text-base font-semibold text-slate-700">
                 Limpa ao mesmo tempo o estado exibido em <span className="font-black text-slate-950">/painel-chamada</span>,{" "}
                 <span className="font-black text-slate-950">/atendente</span> e <span className="font-black text-slate-950">/medico</span>.
-                Chamadas visuais do dia sao removidas e atendimentos em andamento voltam para a fila correspondente.
+                A limpeza encerra os tickets operacionais visiveis do dia e remove as chamadas visuais atuais para deixar os tres painis vazios ao mesmo tempo.
               </p>
             </div>
 
@@ -206,7 +205,7 @@ export function AdminScreen() {
               <p className="text-base font-black text-amber-950">Confirmacao obrigatoria</p>
               <p className="mt-2 text-sm font-semibold text-amber-900">
                 Esta limpeza zera as chamadas visuais atuais do <span className="font-black">/painel-chamada</span> e remove o atendimento em andamento do{" "}
-                <span className="font-black">/atendente</span> e do <span className="font-black">/medico</span>. O historico visual do dia sera limpo para evitar estado antigo pendurado.
+                <span className="font-black">/atendente</span> e do <span className="font-black">/medico</span>. Os tickets operacionais visiveis do dia serao encerrados e o historico visual do dia sera limpo para evitar estado antigo pendurado.
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <button

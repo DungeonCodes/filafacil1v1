@@ -70,8 +70,7 @@ describe("AdminScreen", () => {
     mockedResetOperationalPanels.mockResolvedValue({
       ok: true,
       data: {
-        resetAttendantTickets: 1,
-        resetDoctorTickets: 1,
+        clearedOperationalTickets: 3,
         clearedRecentCalls: true
       }
     });
@@ -157,7 +156,7 @@ describe("AdminScreen", () => {
 
     expect(mockedResetOperationalPanels).toHaveBeenCalledTimes(1);
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "Paineis operacionais limpos com sucesso. As chamadas visuais do dia foram removidas e atendimentos em andamento voltaram para a fila."
+      "Paineis operacionais limpos com sucesso. Os tickets visiveis da operacao atual foram encerrados e as chamadas visuais do dia foram removidas."
     );
     expect(mockedLoadAdminDashboardSnapshot).toHaveBeenCalledTimes(2);
   });
