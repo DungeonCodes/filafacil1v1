@@ -18,6 +18,7 @@ These workflow files are the repository source of truth for future Codex session
 - Keep changes incremental, scoped, and consistent with the current architecture.
 - Validate implementation results before marking work as complete.
 - Update `workflow/` after any substantial implementation or validation pass.
+- If the task involves `/totem` UI or UX, also consult root `AGENTS.md`, `design/totem-reference/`, and `.agents/skills/totem-ui/SKILL.md`.
 
 ## Documentation rules
 - `workflow/` must reflect the repository as it exists now, not the intended future state.

@@ -5,7 +5,6 @@ import { createNextTicket, loadQueues } from "./api";
 import type { QueueOption } from "./types";
 import { formatTicket } from "@/lib/tickets/formatTicket";
 import { MainTopNav } from "@/components/MainTopNav";
-import { HighContrastToggle } from "@/features/accessibility/HighContrastToggle";
 import { useHighContrast } from "@/features/accessibility/HighContrastProvider";
 
 type FeedbackState =
@@ -53,6 +52,16 @@ type SpeechRecognitionLike = {
 };
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type QueueVisualConfig = {
+  eyebrow: string;
+  description: string;
+  badge: string;
+  icon: "general" | "pediatric" | "exams" | "default";
+  accentGradient: string;
+  badgeTone: string;
+  iconTone: string;
+};
 
 const DIGIT_WORDS: Record<string, string> = {
   "0": "zero",
@@ -146,8 +155,154 @@ function isSpeechSynthesisAvailable(): boolean {
   return typeof window !== "undefined" && "speechSynthesis" in window && typeof window.SpeechSynthesisUtterance !== "undefined";
 }
 
+function StethoscopeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 4v5a4 4 0 0 0 8 0V4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 4h4M14 4h4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 13v2a4 4 0 0 0 8 0v-1.5a2.5 2.5 0 1 0-2.5 2.5H20" />
+      <circle cx="17.5" cy="12" r="1.5" />
+    </svg>
+  );
+}
+
+function ChildCareIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <circle cx="12" cy="6.25" r="2.25" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 21v-4.5l-2.5-2.25a2.4 2.4 0 0 1-.7-2.32l.45-2.08A2.8 2.8 0 0 1 9.48 7.7h5.04a2.8 2.8 0 0 1 2.73 2.15l.45 2.08a2.4 2.4 0 0 1-.7 2.32l-2.5 2.25V21" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 12.5 12 15l2.5-2.5" />
+    </svg>
+  );
+}
+
+function FlaskIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10 3h4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11 3v5.2l-5.7 9.25A2.2 2.2 0 0 0 7.17 21h9.66a2.2 2.2 0 0 0 1.87-3.55L13 8.2V3" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.8 14h6.4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.7 17h4.6" />
+    </svg>
+  );
+}
+
+function ContrastIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="8" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function VoiceIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4a2.8 2.8 0 0 0-2.8 2.8v4.4a2.8 2.8 0 1 0 5.6 0V6.8A2.8 2.8 0 0 0 12 4Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.5 10.75a5.5 5.5 0 0 0 11 0" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.25V20" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.2 20h5.6" />
+    </svg>
+  );
+}
+
+function StatusSparkIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m12 3 1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m18.5 15 1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5Z" />
+    </svg>
+  );
+}
+
+function renderQueueIcon(icon: QueueVisualConfig["icon"], className?: string) {
+  switch (icon) {
+    case "general":
+      return <StethoscopeIcon className={className} />;
+    case "pediatric":
+      return <ChildCareIcon className={className} />;
+    case "exams":
+      return <FlaskIcon className={className} />;
+    default:
+      return <StatusSparkIcon className={className} />;
+  }
+}
+
+function getVoiceStepLabel(step: VoiceStep): string {
+  switch (step) {
+    case "listening_choice":
+      return "Ouvindo opcao";
+    case "confirming_choice":
+      return "Confirmando opcao";
+    case "generating":
+      return "Gerando senha";
+    case "completed":
+      return "Concluido";
+    case "starting":
+      return "Iniciando";
+    case "unsupported":
+      return "Indisponivel";
+    case "error":
+      return "Erro";
+    default:
+      return "Desativado";
+  }
+}
+
+function getQueueVisualConfig(queue: QueueOption): QueueVisualConfig {
+  const normalizedName = normalizeVoiceInput(queue.name);
+  const normalizedPrefix = queue.prefix.toUpperCase();
+
+  if (normalizedPrefix === "CG" || normalizedName.includes("clinico") || normalizedName.includes("geral")) {
+    return {
+      eyebrow: "Clinica geral",
+      description: "Consultas e triagem inicial.",
+      badge: "Consulta e triagem",
+      icon: "general",
+      accentGradient: "from-sky-500 via-blue-500 to-indigo-600",
+      badgeTone: "bg-sky-100 text-sky-700",
+      iconTone: "bg-sky-100 text-sky-700"
+    };
+  }
+
+  if (normalizedPrefix === "PD" || normalizedName.includes("pediatria")) {
+    return {
+      eyebrow: "Atendimento infantil",
+      description: "Cuidado infantil e juvenil.",
+      badge: "Pediatria",
+      icon: "pediatric",
+      accentGradient: "from-cyan-400 via-sky-500 to-blue-600",
+      badgeTone: "bg-cyan-100 text-cyan-700",
+      iconTone: "bg-cyan-100 text-cyan-700"
+    };
+  }
+
+  if (normalizedPrefix === "EX" || normalizedName.includes("exame")) {
+    return {
+      eyebrow: "Coleta e diagnostico",
+      description: "Coletas, imagens e diagnostico.",
+      badge: "Exames",
+      icon: "exams",
+      accentGradient: "from-indigo-500 via-blue-600 to-sky-700",
+      badgeTone: "bg-indigo-100 text-indigo-700",
+      iconTone: "bg-indigo-100 text-indigo-700"
+    };
+  }
+
+  return {
+    eyebrow: "Atendimento digital",
+    description: "Emissao imediata com toque facilitado.",
+    badge: "Emissao imediata",
+    icon: "default",
+    accentGradient: "from-sky-500 via-blue-500 to-indigo-600",
+    badgeTone: "bg-sky-100 text-sky-700",
+    iconTone: "bg-sky-100 text-sky-700"
+  };
+}
+
 export function TotemScreen() {
-  const { isHighContrast } = useHighContrast();
+  const { isHighContrast, toggleHighContrast } = useHighContrast();
   const [queues, setQueues] = useState<QueueOption[]>([]);
   const [isLoadingQueues, setIsLoadingQueues] = useState(true);
   const [queueError, setQueueError] = useState<string | null>(null);
@@ -214,6 +369,76 @@ export function TotemScreen() {
     }
     return feedback.message;
   }, [feedback]);
+
+  const issuedTicketParts = useMemo(() => {
+    if (!lastIssuedTicket) {
+      return null;
+    }
+
+    const [prefix, number] = lastIssuedTicket.split("-");
+    if (!number) {
+      return {
+        prefix: lastIssuedTicket,
+        number: null
+      };
+    }
+
+    return {
+      prefix,
+      number
+    };
+  }, [lastIssuedTicket]);
+
+  const voiceStepSummary = useMemo(() => getVoiceStepLabel(voiceStep), [voiceStep]);
+
+  const voiceStatusBadge = useMemo(() => {
+    if (isHighContrast) {
+      if (voiceStep === "error") {
+        return {
+          label: "Erro",
+          className: "bg-white text-black"
+        };
+      }
+
+      return {
+        label: voiceStep === "completed" ? "Concluido" : voiceStep === "unsupported" ? "Indisponivel" : "Acessivel",
+        className: "bg-yellow-300 text-black"
+      };
+    }
+
+    if (voiceStep === "listening_choice" || voiceStep === "confirming_choice") {
+      return {
+        label: "Ouvindo",
+        className: "bg-sky-100 text-sky-700"
+      };
+    }
+
+    if (voiceStep === "generating") {
+      return {
+        label: "Gerando",
+        className: "bg-blue-100 text-blue-700"
+      };
+    }
+
+    if (voiceStep === "completed") {
+      return {
+        label: "Concluido",
+        className: "bg-emerald-100 text-emerald-700"
+      };
+    }
+
+    if (voiceStep === "error" || voiceStep === "unsupported") {
+      return {
+        label: voiceStep === "error" ? "Erro" : "Indisponivel",
+        className: "bg-rose-100 text-rose-700"
+      };
+    }
+
+    return {
+      label: isVoiceModeActive ? "Ativo" : "Pronto",
+      className: "bg-slate-100 text-slate-700"
+    };
+  }, [isHighContrast, isVoiceModeActive, voiceStep]);
 
   useEffect(() => {
     return () => {
@@ -504,8 +729,8 @@ export function TotemScreen() {
       setFeedback({ kind: "error", message: result.error });
       setIssuingPrefix(null);
       if (options?.speakResult && voiceModeActiveRef.current) {
-      setVoiceStep("error");
-      setVoiceStatusMessage("Erro ao gerar senha no modo por voz.");
+        setVoiceStep("error");
+        setVoiceStatusMessage("Erro ao gerar senha no modo por voz.");
         speakText(`Nao foi possivel gerar a senha para ${queue.name}. Tente novamente ou cancele o modo por voz.`, () => {
           if (voiceModeActiveRef.current) {
             startListening("choice");
@@ -547,169 +772,398 @@ export function TotemScreen() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-10">
-      <MainTopNav activePath="/totem" />
+    <main
+      className={`relative overflow-hidden ${
+        isHighContrast
+          ? "bg-black"
+          : "bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.22),_transparent_20%),radial-gradient(circle_at_bottom_left,_rgba(37,99,235,0.20),_transparent_24%),linear-gradient(180deg,_#f8fbff_0%,_#eef4fb_52%,_#e7eff8_100%)]"
+      }`}
+    >
+      {!isHighContrast && (
+        <>
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle,_rgba(255,255,255,0.92)_0%,_rgba(255,255,255,0)_72%)]" />
+          <div className="pointer-events-none absolute right-[-8rem] top-20 h-72 w-72 rounded-full bg-sky-300/25 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-[-9rem] left-[-5rem] h-80 w-80 rounded-full bg-blue-400/20 blur-3xl" />
+        </>
+      )}
 
-      <div className="mb-4 flex flex-wrap justify-end gap-3">
-        <button
-          type="button"
-          onClick={isVoiceModeActive ? handleDeactivateVoiceMode : handleActivateVoiceMode}
-          disabled={isLoadingQueues || Boolean(issuingPrefix)}
-          className={`inline-flex min-h-12 items-center justify-center rounded-xl border-2 px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:border-slate-400 disabled:bg-slate-300 disabled:text-slate-500 ${
-            isVoiceModeActive
-              ? "border-emerald-700 bg-emerald-600 text-white hover:bg-emerald-700"
-              : "border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+        <MainTopNav activePath="/totem" />
+
+        <section
+          className={`relative overflow-hidden rounded-[2rem] px-4 py-4 sm:px-6 sm:py-5 ${
+            isHighContrast
+              ? "border-2 border-white bg-black text-white shadow-none"
+              : "border border-white/70 bg-white/88 text-slate-950 shadow-[0_24px_70px_-38px_rgba(15,23,42,0.22)] backdrop-blur-xl"
           }`}
-          aria-pressed={isVoiceModeActive}
-          aria-label={isVoiceModeActive ? "Desativar modo por voz guiado" : "Ativar modo por voz guiado"}
         >
-          {isVoiceModeActive ? "Desativar modo por voz" : "Ativar modo por voz"}
-        </button>
-        <HighContrastToggle />
-      </div>
+          {!isHighContrast && (
+            <>
+              <div className="pointer-events-none absolute right-0 top-0 h-24 w-24 rounded-full bg-sky-400/15 blur-2xl" />
+              <div className="pointer-events-none absolute bottom-[-2rem] left-[-1rem] h-20 w-20 rounded-full bg-blue-500/10 blur-2xl" />
+            </>
+          )}
 
-      <div
-        className={`mb-4 rounded-2xl border-2 px-4 py-3 text-sm font-semibold ${
-          isHighContrast ? "border-white bg-black text-white" : "border-slate-300 bg-white/80 text-slate-800"
-        }`}
-        aria-live="polite"
-      >
-        <p>
-          <span className="font-black">Modo por voz:</span>{" "}
-          {voiceStep === "listening_choice"
-            ? "Ouvindo opcao..."
-            : voiceStep === "confirming_choice"
-              ? "Confirmando opcao..."
-              : voiceStep === "generating"
-                ? "Gerando senha..."
-                : voiceStep === "completed"
-                  ? "Concluido."
-                  : voiceStep === "starting"
-                    ? "Iniciando..."
-                    : voiceStep === "unsupported"
-                      ? "Indisponivel."
-                      : voiceStep === "error"
-                        ? "Erro."
-                        : "Desativado."}
-        </p>
-        <p className="mt-1">{voiceStatusMessage}</p>
-        {selectedVoiceQueue && <p className="mt-1">Opcao atual: {selectedVoiceQueue.name}</p>}
-        {lastHeardCommand && <p className="mt-1">Ultimo comando reconhecido: &quot;{lastHeardCommand}&quot;</p>}
-      </div>
+          <div className="relative">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] ${
+                      isHighContrast ? "bg-white text-black" : "bg-sky-100 text-sky-700"
+                    }`}
+                  >
+                    Totem
+                  </span>
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] ${
+                      isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    Autoatendimento
+                  </span>
+                </div>
 
-      <div aria-live="polite" aria-atomic="true" className="sr-only">
-        {liveMessage}
-      </div>
+                <h1 className={`mt-3 text-3xl font-black tracking-tight sm:text-[2.55rem] ${isHighContrast ? "text-white" : "text-slate-950"}`}>
+                  Escolha seu atendimento.
+                </h1>
+                <p className={`mt-2 text-sm font-medium sm:text-base ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}>
+                  Toque em uma opcao para gerar sua senha.
+                </p>
+              </div>
 
-      <section
-        className={`rounded-3xl border-4 p-8 md:p-10 ${
-          isHighContrast
-            ? "border-white bg-black text-white shadow-none"
-            : "border-sky-900 bg-white/95 shadow-xl backdrop-blur-sm"
-        }`}
-      >
-        <h1 className={`text-center text-4xl font-black tracking-tight md:text-5xl ${isHighContrast ? "text-white" : "text-slate-950"}`}>
-          Autoatendimento
-        </h1>
-        <p className={`mt-3 text-center text-lg ${isHighContrast ? "text-slate-100" : "text-slate-700"}`}>
-          Escolha o tipo de atendimento para gerar sua senha digital.
-        </p>
+              <span
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] ${
+                  isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                <StatusSparkIcon className="h-4 w-4" />
+                {voiceStatusBadge.label}
+              </span>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2.5">
+              <button
+                type="button"
+                onClick={isVoiceModeActive ? handleDeactivateVoiceMode : handleActivateVoiceMode}
+                disabled={isLoadingQueues || Boolean(issuingPrefix)}
+                aria-pressed={isVoiceModeActive}
+                aria-label={isVoiceModeActive ? "Desativar modo por voz guiado" : "Ativar modo por voz guiado"}
+                className={`inline-flex min-h-[3.45rem] items-center gap-2 rounded-[1.25rem] border px-4 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 disabled:cursor-not-allowed ${
+                  isHighContrast
+                    ? isVoiceModeActive
+                      ? "border-white bg-yellow-300 text-black hover:bg-yellow-200 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
+                      : "border-white bg-black text-white hover:bg-slate-900 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
+                    : isVoiceModeActive
+                      ? "border-emerald-200 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-[0_16px_38px_-26px_rgba(16,185,129,0.7)] hover:from-emerald-600 hover:to-teal-600 disabled:border-slate-200 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-500 disabled:shadow-none"
+                      : "border-sky-200 bg-white text-slate-900 shadow-[0_14px_34px_-24px_rgba(15,23,42,0.22)] hover:border-sky-300 hover:bg-sky-50 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:shadow-none"
+                }`}
+              >
+                <VoiceIcon className="h-5 w-5" />
+                <span>Voz</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] ${
+                    isHighContrast
+                      ? isVoiceModeActive
+                        ? "bg-black text-yellow-300"
+                        : "border border-white text-white"
+                      : isVoiceModeActive
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {isVoiceModeActive ? "On" : "Off"}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={toggleHighContrast}
+                aria-pressed={isHighContrast}
+                aria-label={isHighContrast ? "Desativar modo de alto contraste" : "Ativar modo de alto contraste"}
+                className={`inline-flex min-h-[3.45rem] items-center gap-2 rounded-[1.25rem] border px-4 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 ${
+                  isHighContrast
+                    ? "border-white bg-yellow-300 text-black hover:bg-yellow-200"
+                    : "border-sky-200 bg-white text-slate-900 shadow-[0_14px_34px_-24px_rgba(15,23,42,0.22)] hover:border-sky-300 hover:bg-sky-50"
+                }`}
+              >
+                <ContrastIcon className="h-5 w-5" />
+                <span>Contraste</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] ${
+                    isHighContrast ? "bg-black text-yellow-300" : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {isHighContrast ? "On" : "Off"}
+                </span>
+              </button>
+            </div>
+
+            {(selectedVoiceQueue || lastHeardCommand || voiceStep !== "idle") && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ${
+                    isHighContrast ? "border border-white text-white" : voiceStatusBadge.className
+                  }`}
+                >
+                  <VoiceIcon className="h-4 w-4" />
+                  {voiceStepSummary}
+                </span>
+
+                {selectedVoiceQueue && (
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    Opcao: {selectedVoiceQueue.name}
+                  </span>
+                )}
+
+                {lastHeardCommand && (
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    Comando: &quot;{lastHeardCommand}&quot;
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {liveMessage}
+        </div>
 
         {feedback?.kind === "success" && lastIssuedTicket && (
-          <div
+          <section
             role="status"
-            className={`mt-8 rounded-3xl border-2 px-5 py-6 text-center ${
+            className={`relative mt-6 overflow-hidden rounded-[2.25rem] ${
               isHighContrast
-                ? "border-white bg-black text-white"
-                : "border-sky-200 bg-gradient-to-br from-sky-600 via-blue-600 to-blue-700 text-white shadow-[0_18px_40px_-18px_rgba(2,132,199,0.9)]"
+                ? "border-2 border-white bg-black text-white shadow-none"
+                : "bg-gradient-to-br from-sky-600 via-blue-600 to-indigo-700 text-white shadow-[0_30px_80px_-34px_rgba(37,99,235,0.55)]"
             }`}
           >
-            <p className={`text-sm font-black uppercase tracking-[0.2em] ${isHighContrast ? "text-slate-200" : "text-sky-100"}`}>
-              Senha gerada
-            </p>
-            <p
-              className={`mt-3 font-black leading-none tracking-[0.08em] md:mt-4 ${
-                isHighContrast
-                  ? "text-6xl text-yellow-300 md:text-7xl"
-                  : "text-6xl text-white md:text-7xl"
-              }`}
-            >
-              {lastIssuedTicket}
-            </p>
-            <p className={`mt-4 text-base font-semibold ${isHighContrast ? "text-slate-100" : "text-sky-50"}`}>{feedback.message}</p>
-          </div>
+            {!isHighContrast && (
+              <>
+                <div className="pointer-events-none absolute inset-y-0 right-[-3rem] w-48 rounded-full bg-white/10 blur-3xl" />
+                <div className="pointer-events-none absolute bottom-[-4rem] left-[-4rem] h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl" />
+              </>
+            )}
+
+            <div className="relative grid gap-6 px-6 py-7 sm:px-8 sm:py-8 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:items-center">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.24em] ${
+                      isHighContrast ? "bg-yellow-300 text-black" : "bg-white/15 text-sky-50"
+                    }`}
+                  >
+                    Senha gerada
+                  </span>
+                  {issuedTicketParts?.prefix && (
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.24em] ${
+                        isHighContrast ? "border border-white text-white" : "bg-white/10 text-sky-50"
+                      }`}
+                    >
+                      Prefixo {issuedTicketParts.prefix}
+                    </span>
+                  )}
+                </div>
+
+                <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Sua senha esta pronta.</h2>
+                <p className={`mt-3 max-w-md text-base leading-7 ${isHighContrast ? "text-slate-100" : "text-blue-50"}`}>
+                  A confirmacao fica em destaque para leitura rapida. Guarde o numero e acompanhe a chamada no painel.
+                </p>
+              </div>
+
+              <div
+                className={`rounded-[1.9rem] px-5 py-6 text-center sm:px-7 sm:py-8 ${
+                  isHighContrast ? "border-2 border-white bg-black text-white" : "bg-white/12 backdrop-blur-md"
+                }`}
+              >
+                <p className={`text-sm font-black uppercase tracking-[0.22em] ${isHighContrast ? "text-yellow-300" : "text-sky-100"}`}>
+                  Guarde esta senha
+                </p>
+                <p className="mt-5 text-center font-black leading-none tracking-[-0.08em] text-[clamp(3.8rem,18vw,7.2rem)]">
+                  {issuedTicketParts?.number ? (
+                    <>
+                      <span className="inline-block">{issuedTicketParts.prefix}</span>
+                      <span className="mx-2 inline-block opacity-70">-</span>
+                      <span className="inline-block">{issuedTicketParts.number}</span>
+                    </>
+                  ) : (
+                    lastIssuedTicket
+                  )}
+                </p>
+                <p className={`mt-5 text-base font-semibold leading-7 ${isHighContrast ? "text-slate-100" : "text-blue-50"}`}>
+                  {feedback.message}
+                </p>
+              </div>
+            </div>
+          </section>
         )}
 
         {feedback?.kind === "error" && (
-          <div
+          <section
             role="alert"
-            className={`mt-8 rounded-2xl border-2 px-5 py-4 text-lg font-semibold ${
-              isHighContrast ? "border-white bg-black text-white" : "border-rose-700 bg-rose-50 text-rose-900"
+            className={`mt-6 rounded-[2rem] px-5 py-5 sm:px-6 ${
+              isHighContrast
+                ? "border-2 border-white bg-black text-white shadow-none"
+                : "border border-rose-200 bg-rose-50 text-rose-900 shadow-[0_20px_55px_-38px_rgba(225,29,72,0.4)]"
             }`}
           >
-            {feedback.message}
-          </div>
+            <p className={`text-sm font-black uppercase tracking-[0.22em] ${isHighContrast ? "text-yellow-300" : "text-rose-700"}`}>
+              Nao foi possivel concluir
+            </p>
+            <p className="mt-3 text-lg font-semibold">{feedback.message}</p>
+          </section>
         )}
 
-        {isLoadingQueues && (
-          <p
-            className={`mt-8 rounded-2xl border-2 px-5 py-6 text-center text-xl font-semibold ${
-              isHighContrast ? "border-white bg-black text-white" : "border-slate-300 bg-slate-50 text-slate-700"
-            }`}
-          >
-            Carregando opcoes de atendimento...
-          </p>
-        )}
-
-        {!isLoadingQueues && queueError && (
-          <div
-            className={`mt-8 rounded-2xl border-2 px-5 py-6 text-center ${
-              isHighContrast ? "border-white bg-black" : "border-amber-600 bg-amber-50"
-            }`}
-          >
-            <p className={`text-lg font-semibold ${isHighContrast ? "text-white" : "text-amber-900"}`}>{queueError}</p>
-            <button
-              type="button"
-              className="mt-4 inline-flex min-h-14 items-center justify-center rounded-xl border-2 border-slate-900 bg-slate-900 px-6 text-lg font-bold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
-              onClick={() => setReloadVersion((currentValue) => currentValue + 1)}
+        <section className="mt-4">
+          {isLoadingQueues && (
+            <p
+              className={`rounded-[2rem] px-5 py-8 text-center text-xl font-semibold ${
+                isHighContrast
+                  ? "border-2 border-white bg-black text-white shadow-none"
+                  : "border border-white/70 bg-white/86 text-slate-700 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.18)]"
+              }`}
             >
-              Tentar novamente
-            </button>
-          </div>
-        )}
+              Carregando opcoes de atendimento...
+            </p>
+          )}
 
-        {!isLoadingQueues && !queueError && (
-          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Filas disponiveis para emissao de senha">
-            {queues.map((queue) => (
-              <li key={queue.id}>
-                <button
-                  type="button"
-                  className={`flex min-h-28 w-full items-center justify-center rounded-2xl border-4 px-5 py-4 text-center text-2xl font-black transition disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 ${
-                    isHighContrast
-                      ? "border-white bg-yellow-300 text-black hover:bg-yellow-200 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
-                      : "border-sky-900 bg-gradient-to-b from-sky-100 to-sky-200 text-slate-950 shadow-[0_10px_18px_-12px_rgba(2,132,199,0.7)] hover:from-sky-200 hover:to-sky-300 disabled:border-slate-400 disabled:bg-slate-200 disabled:text-slate-500"
-                  }`}
-                  aria-label={`Gerar senha para ${queue.name}`}
-                  onClick={() => void handleIssueTicket(queue)}
-                  disabled={Boolean(issuingPrefix)}
-                >
-                  {issuingPrefix === queue.prefix ? "Gerando..." : queue.name}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+          {!isLoadingQueues && queueError && (
+            <div
+              className={`rounded-[2rem] px-5 py-6 text-center ${
+                isHighContrast
+                  ? "border-2 border-white bg-black text-white shadow-none"
+                  : "border border-amber-200 bg-amber-50 text-amber-950 shadow-[0_20px_60px_-40px_rgba(245,158,11,0.25)]"
+              }`}
+            >
+              <p className={`text-lg font-semibold ${isHighContrast ? "text-white" : "text-amber-900"}`}>{queueError}</p>
+              <button
+                type="button"
+                className={`mt-5 inline-flex min-h-14 items-center justify-center rounded-[1.35rem] border px-6 text-lg font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 ${
+                  isHighContrast
+                    ? "border-white bg-yellow-300 text-black hover:bg-yellow-200"
+                    : "border-sky-200 bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-[0_18px_45px_-24px_rgba(37,99,235,0.55)] hover:from-sky-700 hover:to-blue-700"
+                }`}
+                onClick={() => setReloadVersion((currentValue) => currentValue + 1)}
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
 
-        {!isLoadingQueues && !queueError && queues.length === 0 && (
-          <p
-            className={`mt-8 rounded-2xl border-2 px-5 py-6 text-center text-xl font-semibold ${
-              isHighContrast ? "border-white bg-black text-white" : "border-slate-300 bg-slate-50 text-slate-700"
-            }`}
-          >
-            Nenhuma fila encontrada no banco.
-          </p>
-        )}
-      </section>
+          {!isLoadingQueues && !queueError && queues.length > 0 && (
+            <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Filas disponiveis para emissao de senha">
+              {queues.map((queue) => {
+                const queueVisual = getQueueVisualConfig(queue);
+                const isIssuingCurrentQueue = issuingPrefix === queue.prefix;
+                const queueDescriptionId = `queue-description-${queue.id}`;
+
+                return (
+                  <li key={queue.id}>
+                    <button
+                      type="button"
+                      className={`group relative flex min-h-[12.25rem] w-full flex-col overflow-hidden rounded-[2rem] px-5 py-5 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none ${
+                        isHighContrast
+                          ? "border-2 border-white bg-black text-white hover:bg-slate-950 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
+                          : "border border-white/80 bg-gradient-to-b from-white via-white to-sky-50/85 text-slate-950 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.24)] hover:-translate-y-1 hover:shadow-[0_26px_80px_-38px_rgba(37,99,235,0.28)] disabled:border-slate-200 disabled:from-slate-100 disabled:to-slate-200 disabled:text-slate-500"
+                      }`}
+                      aria-label={`Gerar senha para ${queue.name}`}
+                      aria-describedby={queueDescriptionId}
+                      onClick={() => void handleIssueTicket(queue)}
+                      disabled={Boolean(issuingPrefix)}
+                    >
+                      <span
+                        className={`absolute inset-x-0 top-0 h-1.5 ${
+                          isHighContrast ? "bg-yellow-300" : `bg-gradient-to-r ${queueVisual.accentGradient}`
+                        }`}
+                      />
+
+                      <div className="relative flex h-full flex-col">
+                        <div className="flex items-start justify-between gap-4">
+                          <div
+                            className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full ${
+                              isHighContrast ? "bg-yellow-300 text-black" : queueVisual.iconTone
+                            }`}
+                          >
+                            {renderQueueIcon(queueVisual.icon, "h-8 w-8")}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className={`text-xs font-black uppercase tracking-[0.22em] ${
+                                isHighContrast ? "text-yellow-300" : "text-sky-700"
+                              }`}
+                            >
+                              {queueVisual.eyebrow}
+                            </p>
+                            <h3 className={`mt-3 text-2xl font-black tracking-tight ${isHighContrast ? "text-white" : "text-slate-950"}`}>
+                              {queue.name}
+                            </h3>
+                          </div>
+
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${
+                              isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {queue.prefix.toUpperCase()}
+                          </span>
+                        </div>
+
+                        <p
+                          id={queueDescriptionId}
+                          className={`mt-4 text-sm leading-6 ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}
+                        >
+                          {queueVisual.description}
+                        </p>
+
+                        <div className="mt-auto flex items-end justify-between gap-3 pt-5">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.2em] ${
+                              isHighContrast ? "border border-white text-white" : queueVisual.badgeTone
+                            }`}
+                          >
+                            {isIssuingCurrentQueue ? "Processando" : queueVisual.badge}
+                          </span>
+                          <div
+                            className={`inline-flex min-h-11 items-center justify-center rounded-[1rem] px-4 text-sm font-black ${
+                              isHighContrast ? "border border-white text-white" : "bg-slate-900 text-white"
+                            }`}
+                          >
+                            {isIssuingCurrentQueue ? "Gerando..." : "Selecionar"}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {!isLoadingQueues && !queueError && queues.length === 0 && (
+            <p
+              className={`rounded-[2rem] px-5 py-8 text-center text-xl font-semibold ${
+                isHighContrast
+                  ? "border-2 border-white bg-black text-white shadow-none"
+                  : "border border-white/70 bg-white/86 text-slate-700 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.18)]"
+              }`}
+            >
+              Nenhuma fila encontrada no banco.
+            </p>
+          )}
+        </section>
+
+      </div>
     </main>
   );
 }
