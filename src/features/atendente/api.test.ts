@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { finishInitialAttendance } from "./api";
+import { finishInitialAttendance, loadAttendantSnapshot } from "./api";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -61,5 +61,44 @@ describe("atendente api", () => {
       ok: false,
       error: "falha ao atualizar"
     });
+  });
+
+  it("filters the attendant snapshot by the current business date", async () => {
+    const currentQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null })
+    };
+    const waitingQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null })
+    };
+    const from = vi
+      .fn()
+      .mockReturnValueOnce(currentQuery)
+      .mockReturnValueOnce(waitingQuery);
+
+    mockedGetSupabaseBrowserClient.mockReturnValue({
+      from
+    } as never);
+
+    const result = await loadAttendantSnapshot("CG");
+
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        currentTicket: null,
+        waitingTickets: []
+      }
+    });
+    expect(currentQuery.eq).toHaveBeenCalledWith("ticket_date", expect.any(String));
+    expect(currentQuery.eq).toHaveBeenCalledWith("current_stage", "called_attendant");
+    expect(currentQuery.eq).toHaveBeenCalledWith("prefix", "CG");
+    expect(waitingQuery.eq).toHaveBeenCalledWith("ticket_date", expect.any(String));
+    expect(waitingQuery.eq).toHaveBeenCalledWith("current_stage", "waiting_attendant");
+    expect(waitingQuery.eq).toHaveBeenCalledWith("prefix", "CG");
   });
 });

@@ -8,6 +8,8 @@ import type {
   RecallTicketInput
 } from "./types";
 
+const BUSINESS_TIME_ZONE = "America/Sao_Paulo";
+
 type TicketRow = {
   id?: unknown;
   prefix?: unknown;
@@ -80,13 +82,35 @@ function getErrorMessage(error: unknown, fallbackMessage: string): string {
   return fallbackMessage;
 }
 
+function getCurrentBusinessDate(): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BUSINESS_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  const parts = formatter.formatToParts(new Date());
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
 export async function loadAttendantSnapshot(queuePrefix: string): Promise<AsyncResult<AttendantSnapshot>> {
   try {
     const supabase = getSupabaseBrowserClient();
+    const businessDate = getCurrentBusinessDate();
 
     const { data: currentData, error: currentError } = await supabase
       .from("tickets")
       .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room")
+      .eq("ticket_date", businessDate)
       .eq("current_stage", "called_attendant")
       .eq("prefix", queuePrefix)
       .order("called_at", { ascending: false, nullsFirst: false })
@@ -100,6 +124,7 @@ export async function loadAttendantSnapshot(queuePrefix: string): Promise<AsyncR
     const { data: waitingData, error: waitingError } = await supabase
       .from("tickets")
       .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room")
+      .eq("ticket_date", businessDate)
       .eq("current_stage", "waiting_attendant")
       .eq("prefix", queuePrefix)
       .order("created_at", { ascending: true })

@@ -150,15 +150,47 @@ export function AtendenteScreen() {
       return;
     }
 
-    await runAction(
-      async () =>
-        callNextAttendant({
-          queuePrefix: selectedQueuePrefix,
-          destinationLabel,
-          calledBy
-        }),
-      "Proxima senha chamada com sucesso."
-    );
+    setIsActionRunning(true);
+
+    const previousCurrentTicketId = snapshot.currentTicket?.id ?? null;
+    const previousWaitingTicketIds = new Set(snapshot.waitingTickets.map((ticket) => ticket.id));
+    const callResult = await callNextAttendant({
+      queuePrefix: selectedQueuePrefix,
+      destinationLabel,
+      calledBy
+    });
+
+    if (!callResult.ok) {
+      setFeedback({ kind: "error", message: callResult.error ?? "Operacao nao concluida." });
+      setIsActionRunning(false);
+      return;
+    }
+
+    const snapshotResult = await loadAttendantSnapshot(selectedQueuePrefix);
+    if (!snapshotResult.ok) {
+      setFeedback({ kind: "error", message: "A chamada foi enviada, mas nao foi possivel confirmar a atualizacao do painel." });
+      setIsActionRunning(false);
+      return;
+    }
+
+    setSnapshot(snapshotResult.data);
+    const currentTicket = snapshotResult.data.currentTicket;
+    const didTransition =
+      currentTicket !== null &&
+      currentTicket.id !== previousCurrentTicketId &&
+      (previousWaitingTicketIds.size === 0 || previousWaitingTicketIds.has(currentTicket.id) || previousCurrentTicketId === null);
+
+    if (!didTransition) {
+      setFeedback({
+        kind: "error",
+        message: "Nenhuma senha elegivel foi chamada nesta fila. Verifique se ha atendimento em andamento ou senhas disponiveis hoje."
+      });
+      setIsActionRunning(false);
+      return;
+    }
+
+    setFeedback({ kind: "success", message: "Proxima senha chamada com sucesso." });
+    setIsActionRunning(false);
   }
 
   async function handleRecall() {

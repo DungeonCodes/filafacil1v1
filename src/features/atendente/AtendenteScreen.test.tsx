@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AtendenteScreen } from "./AtendenteScreen";
@@ -73,10 +73,63 @@ describe("AtendenteScreen", () => {
   });
 
   it("calls next ticket using selected queue prefix", async () => {
+    mockedLoadAttendantSnapshot
+      .mockResolvedValueOnce({
+        ok: true,
+        data: {
+          currentTicket: null,
+          waitingTickets: [
+            {
+              id: 11,
+              prefix: "CG",
+              ticketNumber: 2,
+              stage: "waiting_attendant",
+              createdAt: "2026-03-10T10:06:00.000Z",
+              calledAt: null,
+              consultingRoom: null
+            },
+            {
+              id: 12,
+              prefix: "CG",
+              ticketNumber: 3,
+              stage: "waiting_attendant",
+              createdAt: "2026-03-10T10:07:00.000Z",
+              calledAt: null,
+              consultingRoom: null
+            }
+          ]
+        }
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        data: {
+          currentTicket: {
+            id: 11,
+            prefix: "CG",
+            ticketNumber: 2,
+            stage: "called_attendant",
+            createdAt: "2026-03-10T10:06:00.000Z",
+            calledAt: "2026-03-10T10:08:00.000Z",
+            consultingRoom: null
+          },
+          waitingTickets: [
+            {
+              id: 12,
+              prefix: "CG",
+              ticketNumber: 3,
+              stage: "waiting_attendant",
+              createdAt: "2026-03-10T10:07:00.000Z",
+              calledAt: null,
+              consultingRoom: null
+            }
+          ]
+        }
+      });
+
     render(<AtendenteScreen />);
     const user = userEvent.setup();
 
-    await screen.findByText("CG-001");
+    expect(await screen.findByText("Nenhuma senha em atendimento nesta fila.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Chamar proximo" }));
 
     expect(mockedCallNextAttendant).toHaveBeenCalledWith({
@@ -84,6 +137,12 @@ describe("AtendenteScreen", () => {
       destinationLabel: "Mesa 1",
       calledBy: "Atendente"
     });
+    expect(await screen.findByText("Proxima senha chamada com sucesso.")).toBeInTheDocument();
+    expect(await screen.findByText(/Chamada as/i)).toBeInTheDocument();
+
+    const waitingList = screen.getByLabelText("Fila de espera inicial");
+    expect(within(waitingList).queryByText("CG-002")).not.toBeInTheDocument();
+    expect(within(waitingList).getByText("CG-003")).toBeInTheDocument();
   });
 
   it("finishes the initial attendance and recalls the current ticket", async () => {
@@ -170,5 +229,60 @@ describe("AtendenteScreen", () => {
       destinationLabel: "Mesa 1",
       calledBy: "Atendente"
     });
+  });
+
+  it("shows an error instead of false success when no eligible ticket is actually called", async () => {
+    mockedLoadAttendantSnapshot
+      .mockResolvedValueOnce({
+        ok: true,
+        data: {
+          currentTicket: null,
+          waitingTickets: [
+            {
+              id: 11,
+              prefix: "CG",
+              ticketNumber: 2,
+              stage: "waiting_attendant",
+              createdAt: "2026-03-10T10:06:00.000Z",
+              calledAt: null,
+              consultingRoom: null
+            }
+          ]
+        }
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        data: {
+          currentTicket: null,
+          waitingTickets: [
+            {
+              id: 11,
+              prefix: "CG",
+              ticketNumber: 2,
+              stage: "waiting_attendant",
+              createdAt: "2026-03-10T10:06:00.000Z",
+              calledAt: null,
+              consultingRoom: null
+            }
+          ]
+        }
+      });
+
+    render(<AtendenteScreen />);
+    const user = userEvent.setup();
+
+    expect(await screen.findByText("Nenhuma senha em atendimento nesta fila.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Chamar proximo" }));
+
+    expect(mockedCallNextAttendant).toHaveBeenCalledWith({
+      queuePrefix: "CG",
+      destinationLabel: "Mesa 1",
+      calledBy: "Atendente"
+    });
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Nenhuma senha elegivel foi chamada nesta fila. Verifique se ha atendimento em andamento ou senhas disponiveis hoje."
+    );
+    expect(screen.queryByText("Proxima senha chamada com sucesso.")).not.toBeInTheDocument();
+    expect(screen.getByText("Nenhuma senha em atendimento nesta fila.")).toBeInTheDocument();
   });
 });
