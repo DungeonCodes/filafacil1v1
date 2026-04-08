@@ -8,10 +8,6 @@ import type {
   RecallTicketInput
 } from "./types";
 
-// The current RPC contract still expects a destination label when moving the
-// ticket into the doctor flow, even though the attendant no longer chooses it.
-const DEFAULT_MEDICAL_DESTINATION_LABEL = "Consultorio 001";
-
 type TicketRow = {
   id?: unknown;
   prefix?: unknown;
@@ -153,11 +149,15 @@ export async function callNextAttendant(input: CallNextAttendantInput): Promise<
 export async function finishInitialAttendance(input: FinishInitialAttendanceInput): Promise<AsyncResult<null>> {
   try {
     const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase.rpc("forward_ticket_to_doctor", {
-      p_ticket_id: input.ticketId,
-      p_destination_label: DEFAULT_MEDICAL_DESTINATION_LABEL,
-      p_called_by: input.calledBy
-    });
+    const { error } = await supabase
+      .from("tickets")
+      .update({
+        current_stage: "waiting_doctor",
+        current_consulting_room: null,
+        called_at: null
+      })
+      .eq("id", input.ticketId)
+      .eq("current_stage", "called_attendant");
 
     if (error) {
       return { ok: false, error: getErrorMessage(error, "Nao foi possivel finalizar o atendimento inicial.") };

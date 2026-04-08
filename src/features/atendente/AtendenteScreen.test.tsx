@@ -106,4 +106,69 @@ describe("AtendenteScreen", () => {
       calledBy: "Atendente"
     });
   });
+
+  it("allows calling the next ticket after the current initial attendance is finalized", async () => {
+    mockedLoadAttendantSnapshot
+      .mockResolvedValueOnce({
+        ok: true,
+        data: {
+          currentTicket: {
+            id: 10,
+            prefix: "CG",
+            ticketNumber: 1,
+            stage: "called_attendant",
+            createdAt: "2026-03-10T10:00:00.000Z",
+            calledAt: "2026-03-10T10:05:00.000Z",
+            consultingRoom: null
+          },
+          waitingTickets: [
+            {
+              id: 11,
+              prefix: "CG",
+              ticketNumber: 2,
+              stage: "waiting_attendant",
+              createdAt: "2026-03-10T10:06:00.000Z",
+              calledAt: null,
+              consultingRoom: null
+            }
+          ]
+        }
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        data: {
+          currentTicket: null,
+          waitingTickets: [
+            {
+              id: 11,
+              prefix: "CG",
+              ticketNumber: 2,
+              stage: "waiting_attendant",
+              createdAt: "2026-03-10T10:06:00.000Z",
+              calledAt: null,
+              consultingRoom: null
+            }
+          ]
+        }
+      });
+
+    render(<AtendenteScreen />);
+    const user = userEvent.setup();
+
+    await screen.findByText("CG-001");
+    await user.click(screen.getByRole("button", { name: "Finalizar atendimento" }));
+    expect(await screen.findByText("Nenhuma senha em atendimento nesta fila.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Chamar proximo" }));
+
+    expect(mockedFinishInitialAttendance).toHaveBeenCalledWith({
+      ticketId: 10,
+      calledBy: "Atendente"
+    });
+    expect(mockedCallNextAttendant).toHaveBeenCalledWith({
+      queuePrefix: "CG",
+      destinationLabel: "Mesa 1",
+      calledBy: "Atendente"
+    });
+  });
 });
