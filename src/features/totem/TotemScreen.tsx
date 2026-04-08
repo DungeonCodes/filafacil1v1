@@ -5,7 +5,6 @@ import { createNextTicket, loadQueues } from "./api";
 import type { QueueOption } from "./types";
 import { formatTicket } from "@/lib/tickets/formatTicket";
 import { MainTopNav } from "@/components/MainTopNav";
-import { HighContrastToggle } from "@/features/accessibility/HighContrastToggle";
 import { useHighContrast } from "@/features/accessibility/HighContrastProvider";
 
 type FeedbackState =
@@ -58,9 +57,10 @@ type QueueVisualConfig = {
   eyebrow: string;
   description: string;
   badge: string;
+  icon: "general" | "pediatric" | "exams" | "default";
   accentGradient: string;
   badgeTone: string;
-  prefixTone: string;
+  iconTone: string;
 };
 
 const DIGIT_WORDS: Record<string, string> = {
@@ -75,21 +75,6 @@ const DIGIT_WORDS: Record<string, string> = {
   "8": "oito",
   "9": "nove"
 };
-
-const HERO_HIGHLIGHTS = [
-  {
-    title: "Senha em destaque",
-    description: "Leitura imediata para confirmar a emissao sem esforco."
-  },
-  {
-    title: "Toque confortavel",
-    description: "Botoes maiores e mais claros para uso rapido no mobile."
-  },
-  {
-    title: "Acessibilidade ativa",
-    description: "Alto contraste e voz guiada seguem preservados."
-  }
-] as const;
 
 function normalizeVoiceInput(value: string): string {
   return value
@@ -170,6 +155,80 @@ function isSpeechSynthesisAvailable(): boolean {
   return typeof window !== "undefined" && "speechSynthesis" in window && typeof window.SpeechSynthesisUtterance !== "undefined";
 }
 
+function StethoscopeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 4v5a4 4 0 0 0 8 0V4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 4h4M14 4h4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 13v2a4 4 0 0 0 8 0v-1.5a2.5 2.5 0 1 0-2.5 2.5H20" />
+      <circle cx="17.5" cy="12" r="1.5" />
+    </svg>
+  );
+}
+
+function ChildCareIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <circle cx="12" cy="6.25" r="2.25" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 21v-4.5l-2.5-2.25a2.4 2.4 0 0 1-.7-2.32l.45-2.08A2.8 2.8 0 0 1 9.48 7.7h5.04a2.8 2.8 0 0 1 2.73 2.15l.45 2.08a2.4 2.4 0 0 1-.7 2.32l-2.5 2.25V21" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 12.5 12 15l2.5-2.5" />
+    </svg>
+  );
+}
+
+function FlaskIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10 3h4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11 3v5.2l-5.7 9.25A2.2 2.2 0 0 0 7.17 21h9.66a2.2 2.2 0 0 0 1.87-3.55L13 8.2V3" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.8 14h6.4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.7 17h4.6" />
+    </svg>
+  );
+}
+
+function ContrastIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="8" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function VoiceIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4a2.8 2.8 0 0 0-2.8 2.8v4.4a2.8 2.8 0 1 0 5.6 0V6.8A2.8 2.8 0 0 0 12 4Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.5 10.75a5.5 5.5 0 0 0 11 0" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.25V20" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.2 20h5.6" />
+    </svg>
+  );
+}
+
+function StatusSparkIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m12 3 1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m18.5 15 1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5Z" />
+    </svg>
+  );
+}
+
+function renderQueueIcon(icon: QueueVisualConfig["icon"], className?: string) {
+  switch (icon) {
+    case "general":
+      return <StethoscopeIcon className={className} />;
+    case "pediatric":
+      return <ChildCareIcon className={className} />;
+    case "exams":
+      return <FlaskIcon className={className} />;
+    default:
+      return <StatusSparkIcon className={className} />;
+  }
+}
+
 function getVoiceStepLabel(step: VoiceStep): string {
   switch (step) {
     case "listening_choice":
@@ -198,48 +257,52 @@ function getQueueVisualConfig(queue: QueueOption): QueueVisualConfig {
   if (normalizedPrefix === "CG" || normalizedName.includes("clinico") || normalizedName.includes("geral")) {
     return {
       eyebrow: "Clinica geral",
-      description: "Consultas, triagem inicial e atendimento geral com leitura clara e toque imediato.",
+      description: "Consultas e triagem inicial.",
       badge: "Consulta e triagem",
+      icon: "general",
       accentGradient: "from-sky-500 via-blue-500 to-indigo-600",
       badgeTone: "bg-sky-100 text-sky-700",
-      prefixTone: "bg-sky-100 text-sky-700"
+      iconTone: "bg-sky-100 text-sky-700"
     };
   }
 
   if (normalizedPrefix === "PD" || normalizedName.includes("pediatria")) {
     return {
       eyebrow: "Atendimento infantil",
-      description: "Fluxo rapido para criancas e adolescentes, com visual acolhedor e facil de localizar.",
+      description: "Cuidado infantil e juvenil.",
       badge: "Pediatria",
+      icon: "pediatric",
       accentGradient: "from-cyan-400 via-sky-500 to-blue-600",
       badgeTone: "bg-cyan-100 text-cyan-700",
-      prefixTone: "bg-cyan-100 text-cyan-700"
+      iconTone: "bg-cyan-100 text-cyan-700"
     };
   }
 
   if (normalizedPrefix === "EX" || normalizedName.includes("exame")) {
     return {
       eyebrow: "Coleta e diagnostico",
-      description: "Solicitacao de exames com hierarquia visual forte e confirmacao clara da emissao.",
+      description: "Coletas, imagens e diagnostico.",
       badge: "Exames",
+      icon: "exams",
       accentGradient: "from-indigo-500 via-blue-600 to-sky-700",
       badgeTone: "bg-indigo-100 text-indigo-700",
-      prefixTone: "bg-indigo-100 text-indigo-700"
+      iconTone: "bg-indigo-100 text-indigo-700"
     };
   }
 
   return {
     eyebrow: "Atendimento digital",
-    description: "Emissao de senha com toque facilitado, leitura rapida e visual organizado para espera segura.",
+    description: "Emissao imediata com toque facilitado.",
     badge: "Emissao imediata",
+    icon: "default",
     accentGradient: "from-sky-500 via-blue-500 to-indigo-600",
     badgeTone: "bg-sky-100 text-sky-700",
-    prefixTone: "bg-sky-100 text-sky-700"
+    iconTone: "bg-sky-100 text-sky-700"
   };
 }
 
 export function TotemScreen() {
-  const { isHighContrast } = useHighContrast();
+  const { isHighContrast, toggleHighContrast } = useHighContrast();
   const [queues, setQueues] = useState<QueueOption[]>([]);
   const [isLoadingQueues, setIsLoadingQueues] = useState(true);
   const [queueError, setQueueError] = useState<string | null>(null);
@@ -727,189 +790,149 @@ export function TotemScreen() {
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <MainTopNav activePath="/totem" />
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.18fr)_minmax(19rem,0.82fr)]">
-          <section
-            className={`relative overflow-hidden rounded-[2rem] px-6 py-6 sm:px-8 sm:py-8 ${
-              isHighContrast
-                ? "border-2 border-white bg-black text-white shadow-none"
-                : "border border-white/70 bg-white/86 text-slate-950 shadow-[0_28px_80px_-36px_rgba(15,23,42,0.24)] backdrop-blur-xl"
-            }`}
-          >
-            {!isHighContrast && (
-              <>
-                <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-sky-400/15 blur-2xl" />
-                <div className="pointer-events-none absolute bottom-[-3rem] left-[-2rem] h-32 w-32 rounded-full bg-blue-500/10 blur-2xl" />
-              </>
-            )}
+        <section
+          className={`relative overflow-hidden rounded-[2rem] px-4 py-4 sm:px-6 sm:py-5 ${
+            isHighContrast
+              ? "border-2 border-white bg-black text-white shadow-none"
+              : "border border-white/70 bg-white/88 text-slate-950 shadow-[0_24px_70px_-38px_rgba(15,23,42,0.22)] backdrop-blur-xl"
+          }`}
+        >
+          {!isHighContrast && (
+            <>
+              <div className="pointer-events-none absolute right-0 top-0 h-24 w-24 rounded-full bg-sky-400/15 blur-2xl" />
+              <div className="pointer-events-none absolute bottom-[-2rem] left-[-1rem] h-20 w-20 rounded-full bg-blue-500/10 blur-2xl" />
+            </>
+          )}
 
-            <div className="relative">
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <span
-                  className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.26em] ${
-                    isHighContrast ? "bg-white text-black" : "bg-sky-100 text-sky-700"
-                  }`}
-                >
-                  Totem digital
-                </span>
-                <span
-                  className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                    isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  FilaFacil Acessivel
-                </span>
+          <div className="relative">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] ${
+                      isHighContrast ? "bg-white text-black" : "bg-sky-100 text-sky-700"
+                    }`}
+                  >
+                    Totem
+                  </span>
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] ${
+                      isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    Autoatendimento
+                  </span>
+                </div>
+
+                <h1 className={`mt-3 text-3xl font-black tracking-tight sm:text-[2.55rem] ${isHighContrast ? "text-white" : "text-slate-950"}`}>
+                  Escolha seu atendimento.
+                </h1>
+                <p className={`mt-2 text-sm font-medium sm:text-base ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}>
+                  Toque em uma opcao para gerar sua senha.
+                </p>
               </div>
 
-              <h1
-                className={`mt-5 max-w-3xl text-4xl font-black tracking-tight sm:text-5xl lg:text-[3.4rem] ${
-                  isHighContrast ? "text-white" : "text-slate-950"
+              <span
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] ${
+                  isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-600"
                 }`}
               >
-                Autoatendimento com leitura rapida e fluxo simples.
-              </h1>
-
-              <p className={`mt-4 max-w-2xl text-base leading-7 sm:text-lg ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}>
-                Escolha o tipo de atendimento para gerar sua senha digital. O fluxo continua o mesmo, com visual mais
-                claro, toque confortavel e destaque imediato para a senha gerada.
-              </p>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                {HERO_HIGHLIGHTS.map((highlight) => (
-                  <div
-                    key={highlight.title}
-                    className={`rounded-[1.5rem] px-4 py-4 ${
-                      isHighContrast
-                        ? "border border-white bg-black"
-                        : "bg-slate-50/90 shadow-[0_12px_36px_-28px_rgba(15,23,42,0.25)]"
-                    }`}
-                  >
-                    <p className={`text-sm font-black uppercase tracking-[0.2em] ${isHighContrast ? "text-yellow-300" : "text-sky-700"}`}>
-                      {highlight.title}
-                    </p>
-                    <p className={`mt-2 text-sm leading-6 ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}>
-                      {highlight.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
+                <StatusSparkIcon className="h-4 w-4" />
+                {voiceStatusBadge.label}
+              </span>
             </div>
-          </section>
 
-          <div className="grid gap-5">
-            <section
-              className={`rounded-[2rem] px-5 py-5 sm:px-6 ${
-                isHighContrast
-                  ? "border-2 border-white bg-black text-white shadow-none"
-                  : "border border-white/70 bg-white/86 text-slate-950 shadow-[0_24px_70px_-38px_rgba(15,23,42,0.22)] backdrop-blur-xl"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className={`text-sm font-black uppercase tracking-[0.22em] ${isHighContrast ? "text-yellow-300" : "text-sky-700"}`}>
-                    Acessibilidade
-                  </p>
-                  <h2 className={`mt-2 text-2xl font-black tracking-tight ${isHighContrast ? "text-white" : "text-slate-950"}`}>
-                    Voz guiada e alto contraste seguem ativos.
-                  </h2>
-                </div>
+            <div className="mt-4 flex flex-wrap gap-2.5">
+              <button
+                type="button"
+                onClick={isVoiceModeActive ? handleDeactivateVoiceMode : handleActivateVoiceMode}
+                disabled={isLoadingQueues || Boolean(issuingPrefix)}
+                aria-pressed={isVoiceModeActive}
+                aria-label={isVoiceModeActive ? "Desativar modo por voz guiado" : "Ativar modo por voz guiado"}
+                className={`inline-flex min-h-[3.45rem] items-center gap-2 rounded-[1.25rem] border px-4 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 disabled:cursor-not-allowed ${
+                  isHighContrast
+                    ? isVoiceModeActive
+                      ? "border-white bg-yellow-300 text-black hover:bg-yellow-200 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
+                      : "border-white bg-black text-white hover:bg-slate-900 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
+                    : isVoiceModeActive
+                      ? "border-emerald-200 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-[0_16px_38px_-26px_rgba(16,185,129,0.7)] hover:from-emerald-600 hover:to-teal-600 disabled:border-slate-200 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-500 disabled:shadow-none"
+                      : "border-sky-200 bg-white text-slate-900 shadow-[0_14px_34px_-24px_rgba(15,23,42,0.22)] hover:border-sky-300 hover:bg-sky-50 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:shadow-none"
+                }`}
+              >
+                <VoiceIcon className="h-5 w-5" />
+                <span>Voz</span>
                 <span
-                  className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.2em] ${
-                    isHighContrast ? "bg-yellow-300 text-black" : "bg-emerald-100 text-emerald-700"
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] ${
+                    isHighContrast
+                      ? isVoiceModeActive
+                        ? "bg-black text-yellow-300"
+                        : "border border-white text-white"
+                      : isVoiceModeActive
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 text-slate-600"
                   }`}
                 >
-                  Preservado
+                  {isVoiceModeActive ? "On" : "Off"}
                 </span>
-              </div>
+              </button>
 
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row lg:flex-col">
-                <div className="sm:flex-1">
-                  <button
-                    type="button"
-                    onClick={isVoiceModeActive ? handleDeactivateVoiceMode : handleActivateVoiceMode}
-                    disabled={isLoadingQueues || Boolean(issuingPrefix)}
-                    className={`inline-flex min-h-[4.5rem] w-full items-center justify-center rounded-[1.4rem] border px-5 py-4 text-base font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 disabled:cursor-not-allowed ${
-                      isHighContrast
-                        ? isVoiceModeActive
-                          ? "border-white bg-yellow-300 text-black hover:bg-yellow-200 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
-                          : "border-white bg-black text-white hover:bg-slate-900 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
-                        : isVoiceModeActive
-                          ? "border-emerald-200 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-[0_18px_45px_-24px_rgba(16,185,129,0.75)] hover:from-emerald-600 hover:to-teal-600 disabled:border-slate-200 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-500 disabled:shadow-none"
-                          : "border-sky-200 bg-white text-slate-900 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.32)] hover:border-sky-300 hover:bg-sky-50 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:shadow-none"
-                    }`}
-                    aria-pressed={isVoiceModeActive}
-                    aria-label={isVoiceModeActive ? "Desativar modo por voz guiado" : "Ativar modo por voz guiado"}
-                  >
-                    {isVoiceModeActive ? "Desativar modo por voz" : "Ativar modo por voz"}
-                  </button>
-                </div>
-
-                <div className="sm:flex-1 [&>button]:w-full">
-                  <HighContrastToggle />
-                </div>
-              </div>
-            </section>
-
-            <section
-              className={`rounded-[2rem] px-5 py-5 sm:px-6 ${
-                isHighContrast
-                  ? "border-2 border-white bg-black text-white shadow-none"
-                  : "border border-white/70 bg-white/78 text-slate-950 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.18)] backdrop-blur-xl"
-              }`}
-              aria-live="polite"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className={`text-sm font-black uppercase tracking-[0.22em] ${isHighContrast ? "text-yellow-300" : "text-sky-700"}`}>
-                    Modo por voz
-                  </p>
-                  <p className={`mt-2 text-xl font-black tracking-tight ${isHighContrast ? "text-white" : "text-slate-950"}`}>
-                    {voiceStepSummary}
-                  </p>
-                </div>
-
+              <button
+                type="button"
+                onClick={toggleHighContrast}
+                aria-pressed={isHighContrast}
+                aria-label={isHighContrast ? "Desativar modo de alto contraste" : "Ativar modo de alto contraste"}
+                className={`inline-flex min-h-[3.45rem] items-center gap-2 rounded-[1.25rem] border px-4 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 ${
+                  isHighContrast
+                    ? "border-white bg-yellow-300 text-black hover:bg-yellow-200"
+                    : "border-sky-200 bg-white text-slate-900 shadow-[0_14px_34px_-24px_rgba(15,23,42,0.22)] hover:border-sky-300 hover:bg-sky-50"
+                }`}
+              >
+                <ContrastIcon className="h-5 w-5" />
+                <span>Contraste</span>
                 <span
-                  className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.2em] ${voiceStatusBadge.className}`}
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] ${
+                    isHighContrast ? "bg-black text-yellow-300" : "bg-slate-100 text-slate-600"
+                  }`}
                 >
-                  {voiceStatusBadge.label}
+                  {isHighContrast ? "On" : "Off"}
                 </span>
+              </button>
+            </div>
+
+            {(selectedVoiceQueue || lastHeardCommand || voiceStep !== "idle") && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ${
+                    isHighContrast ? "border border-white text-white" : voiceStatusBadge.className
+                  }`}
+                >
+                  <VoiceIcon className="h-4 w-4" />
+                  {voiceStepSummary}
+                </span>
+
+                {selectedVoiceQueue && (
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    Opcao: {selectedVoiceQueue.name}
+                  </span>
+                )}
+
+                {lastHeardCommand && (
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                      isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    Comando: &quot;{lastHeardCommand}&quot;
+                  </span>
+                )}
               </div>
-
-              <p className={`mt-4 text-sm leading-6 sm:text-base ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}>
-                {voiceStatusMessage}
-              </p>
-
-              {(selectedVoiceQueue || lastHeardCommand) && (
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {selectedVoiceQueue && (
-                    <div
-                      className={`rounded-[1.25rem] px-4 py-3 ${
-                        isHighContrast ? "border border-white bg-black" : "bg-slate-50 text-slate-700"
-                      }`}
-                    >
-                      <p className={`text-xs font-black uppercase tracking-[0.2em] ${isHighContrast ? "text-yellow-300" : "text-sky-700"}`}>
-                        Opcao atual
-                      </p>
-                      <p className="mt-2 text-sm font-bold">{selectedVoiceQueue.name}</p>
-                    </div>
-                  )}
-
-                  {lastHeardCommand && (
-                    <div
-                      className={`rounded-[1.25rem] px-4 py-3 ${
-                        isHighContrast ? "border border-white bg-black" : "bg-slate-50 text-slate-700"
-                      }`}
-                    >
-                      <p className={`text-xs font-black uppercase tracking-[0.2em] ${isHighContrast ? "text-yellow-300" : "text-sky-700"}`}>
-                        Ultimo comando
-                      </p>
-                      <p className="mt-2 text-sm font-bold">&quot;{lastHeardCommand}&quot;</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </section>
+            )}
           </div>
-        </div>
+        </section>
 
         <div aria-live="polite" aria-atomic="true" className="sr-only">
           {liveMessage}
@@ -1001,32 +1024,10 @@ export function TotemScreen() {
           </section>
         )}
 
-        <section className="mt-6">
-          <div
-            className={`rounded-[2rem] px-5 py-5 sm:px-6 ${
-              isHighContrast
-                ? "border-2 border-white bg-black text-white shadow-none"
-                : "border border-white/70 bg-white/78 text-slate-950 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.18)] backdrop-blur-xl"
-            }`}
-          >
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className={`text-sm font-black uppercase tracking-[0.22em] ${isHighContrast ? "text-yellow-300" : "text-sky-700"}`}>
-                  Emissao de senha
-                </p>
-                <h2 className={`mt-2 text-2xl font-black tracking-tight sm:text-3xl ${isHighContrast ? "text-white" : "text-slate-950"}`}>
-                  Escolha o atendimento desejado.
-                </h2>
-              </div>
-              <p className={`max-w-xl text-sm leading-6 sm:text-right sm:text-base ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}>
-                Toque em um card grande para emitir sua senha e depois acompanhe a chamada no painel.
-              </p>
-            </div>
-          </div>
-
+        <section className="mt-4">
           {isLoadingQueues && (
             <p
-              className={`mt-5 rounded-[2rem] px-5 py-8 text-center text-xl font-semibold ${
+              className={`rounded-[2rem] px-5 py-8 text-center text-xl font-semibold ${
                 isHighContrast
                   ? "border-2 border-white bg-black text-white shadow-none"
                   : "border border-white/70 bg-white/86 text-slate-700 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.18)]"
@@ -1038,7 +1039,7 @@ export function TotemScreen() {
 
           {!isLoadingQueues && queueError && (
             <div
-              className={`mt-5 rounded-[2rem] px-5 py-6 text-center ${
+              className={`rounded-[2rem] px-5 py-6 text-center ${
                 isHighContrast
                   ? "border-2 border-white bg-black text-white shadow-none"
                   : "border border-amber-200 bg-amber-50 text-amber-950 shadow-[0_20px_60px_-40px_rgba(245,158,11,0.25)]"
@@ -1060,7 +1061,7 @@ export function TotemScreen() {
           )}
 
           {!isLoadingQueues && !queueError && queues.length > 0 && (
-            <ul className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Filas disponiveis para emissao de senha">
+            <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Filas disponiveis para emissao de senha">
               {queues.map((queue) => {
                 const queueVisual = getQueueVisualConfig(queue);
                 const isIssuingCurrentQueue = issuingPrefix === queue.prefix;
@@ -1070,7 +1071,7 @@ export function TotemScreen() {
                   <li key={queue.id}>
                     <button
                       type="button"
-                      className={`group relative flex min-h-[13.5rem] w-full flex-col overflow-hidden rounded-[2rem] px-5 py-5 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none ${
+                      className={`group relative flex min-h-[12.25rem] w-full flex-col overflow-hidden rounded-[2rem] px-5 py-5 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none ${
                         isHighContrast
                           ? "border-2 border-white bg-black text-white hover:bg-slate-950 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
                           : "border border-white/80 bg-gradient-to-b from-white via-white to-sky-50/85 text-slate-950 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.24)] hover:-translate-y-1 hover:shadow-[0_26px_80px_-38px_rgba(37,99,235,0.28)] disabled:border-slate-200 disabled:from-slate-100 disabled:to-slate-200 disabled:text-slate-500"
@@ -1087,16 +1088,16 @@ export function TotemScreen() {
                       />
 
                       <div className="relative flex h-full flex-col">
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-start justify-between gap-4">
                           <div
-                            className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.4rem] text-lg font-black tracking-[0.22em] ${
-                              isHighContrast ? "bg-yellow-300 text-black" : queueVisual.prefixTone
+                            className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full ${
+                              isHighContrast ? "bg-yellow-300 text-black" : queueVisual.iconTone
                             }`}
                           >
-                            {queue.prefix.toUpperCase()}
+                            {renderQueueIcon(queueVisual.icon, "h-8 w-8")}
                           </div>
 
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p
                               className={`text-xs font-black uppercase tracking-[0.22em] ${
                                 isHighContrast ? "text-yellow-300" : "text-sky-700"
@@ -1108,16 +1109,24 @@ export function TotemScreen() {
                               {queue.name}
                             </h3>
                           </div>
+
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${
+                              isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {queue.prefix.toUpperCase()}
+                          </span>
                         </div>
 
                         <p
                           id={queueDescriptionId}
-                          className={`mt-5 text-sm leading-6 ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}
+                          className={`mt-4 text-sm leading-6 ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}
                         >
                           {queueVisual.description}
                         </p>
 
-                        <div className="mt-auto flex items-center justify-between gap-3 pt-6">
+                        <div className="mt-auto flex items-end justify-between gap-3 pt-5">
                           <span
                             className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.2em] ${
                               isHighContrast ? "border border-white text-white" : queueVisual.badgeTone
@@ -1125,9 +1134,13 @@ export function TotemScreen() {
                           >
                             {isIssuingCurrentQueue ? "Processando" : queueVisual.badge}
                           </span>
-                          <span className={`text-base font-black ${isHighContrast ? "text-white" : "text-slate-900"}`}>
-                            {isIssuingCurrentQueue ? "Gerando..." : "Toque para emitir"}
-                          </span>
+                          <div
+                            className={`inline-flex min-h-11 items-center justify-center rounded-[1rem] px-4 text-sm font-black ${
+                              isHighContrast ? "border border-white text-white" : "bg-slate-900 text-white"
+                            }`}
+                          >
+                            {isIssuingCurrentQueue ? "Gerando..." : "Selecionar"}
+                          </div>
                         </div>
                       </div>
                     </button>
@@ -1139,7 +1152,7 @@ export function TotemScreen() {
 
           {!isLoadingQueues && !queueError && queues.length === 0 && (
             <p
-              className={`mt-5 rounded-[2rem] px-5 py-8 text-center text-xl font-semibold ${
+              className={`rounded-[2rem] px-5 py-8 text-center text-xl font-semibold ${
                 isHighContrast
                   ? "border-2 border-white bg-black text-white shadow-none"
                   : "border border-white/70 bg-white/86 text-slate-700 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.18)]"
@@ -1150,31 +1163,6 @@ export function TotemScreen() {
           )}
         </section>
 
-        {!isLoadingQueues && !queueError && queues.length > 0 && (
-          <section
-            className={`mt-6 rounded-[2rem] px-5 py-5 sm:px-6 ${
-              isHighContrast
-                ? "border-2 border-white bg-black text-white shadow-none"
-                : "border border-sky-100 bg-sky-50/90 text-slate-950 shadow-[0_24px_70px_-42px_rgba(14,165,233,0.22)]"
-            }`}
-          >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className={`text-sm font-black uppercase tracking-[0.22em] ${isHighContrast ? "text-yellow-300" : "text-sky-700"}`}>
-                  Ajuda rapida
-                </p>
-                <h2 className={`mt-2 text-2xl font-black tracking-tight ${isHighContrast ? "text-white" : "text-slate-950"}`}>
-                  Precisa de orientacao?
-                </h2>
-              </div>
-
-              <p className={`max-w-2xl text-sm leading-6 sm:text-base ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}>
-                Em caso de duvida, procure o balcao de informacoes ou ative o modo por voz para ouvir as opcoes de
-                atendimento.
-              </p>
-            </div>
-          </section>
-        )}
       </div>
     </main>
   );

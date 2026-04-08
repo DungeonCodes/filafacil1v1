@@ -1,135 +1,182 @@
-Visual Direction — Totem v2
+# Visual Direction — Totem v2
 
-Objetivo
-Este diretório reúne referências visuais para a evolução da tela /totem do projeto FilaFácil Acessível.
+## Objetivo
+Este arquivo define a direção visual desejada para a próxima evolução da tela `/totem` do projeto FilaFácil Acessível.
 
-A intenção não é copiar literalmente o HTML exportado ou substituir a arquitetura atual do sistema.
-O objetivo é usar essas referências para guiar a implementação visual dentro do projeto atual em Next.js, TypeScript e Tailwind, preservando toda a lógica já existente.
+A intenção é usar referências visuais como guia, mas implementar tudo diretamente na arquitetura atual do projeto, sem copiar HTML bruto e sem alterar a lógica funcional já existente.
 
-Princípios visuais principais
+## Princípio central
+O `/totem` deve ser uma tela de ação rápida.
 
-Visual clean, moderno e acolhedor
-Estética inspirada em ambiente hospitalar e digital de autoatendimento
-Aparência profissional, simples e confiável
-Hierarquia visual muito clara
-Uso predominante de tons claros com azul como cor principal de destaque
-Layout com boa respiração, espaçamento generoso e baixa poluição visual
-Interface pensada primeiro para mobile, mas funcionando bem em telas maiores
+O usuário deve bater o olho e entender imediatamente:
+- onde tocar
+- quais opções existem
+- onde está sua senha gerada
+- como acessar recursos de acessibilidade
 
-Prioridade máxima de UX
-O elemento mais importante da tela é a senha gerada.
-Ela deve ser o maior ponto de atenção visual do /totem.
+A tela deve parecer um produto real de autoatendimento em saúde:
+- moderno
+- limpo
+- confiável
+- acessível
+- rápido de entender
+
+## Prioridade máxima de UX
+As opções de atendimento precisam aparecer logo de cara.
+
+No mobile, o usuário não deve precisar rolar para encontrar as principais ações do totem, sempre que isso for visualmente viável.
+
+A senha gerada continua sendo o elemento visual mais importante quando existir, mas a tela inicial deve priorizar ação rápida.
+
+## Direção visual geral
+- visual clean e moderno
+- clima hospitalar/digital
+- aparência profissional e acolhedora
+- menos texto e mais ação
+- hierarquia visual imediata
+- mobile-first
+- baixa poluição visual
+- foco em toque rápido
+
+## O que deve mudar na nova versão
+- reduzir blocos textuais grandes no topo
+- remover textos descritivos longos e institucionais
+- evitar subtítulos ou explicações que atrasem a ação principal
+- mostrar as opções de atendimento o mais cedo possível na tela
+- tornar a acessibilidade mais compacta e visual
+- substituir excesso de texto por ícones, rótulos curtos e botões claros
+- reforçar ícones reais nos cards de atendimento, no estilo das referências do Stitch
+
+## O que não quero no topo
+- blocos grandes com descrição institucional
+- textos longos explicando o fluxo
+- painéis grandes de acessibilidade com frases
+- elementos que empurrem as opções de atendimento para baixo
+
+## Acessibilidade no visual
+A área de acessibilidade deve existir, mas de forma compacta.
+
+Direção desejada:
+- acessibilidade representada por botões/controles com ícones
+- rótulos curtos
+- leitura rápida
+- aparência discreta, mas clara
+- sem painéis textuais grandes
+
+Exemplos de elementos desejados:
+- botão de alto contraste com ícone
+- botão de voz guiada com ícone
+- botões compactos e fáceis de localizar
+
+## Cards de atendimento
+Os cards de atendimento são parte central da tela e precisam parecer clicáveis, claros e confiáveis.
+
+Eles devem:
+- usar ícones reais e consistentes
+- ter aparência mais próxima da referência do Stitch
+- parecer grandes e táteis
+- ter leitura simples
+- evitar depender de siglas como elemento principal
+
+As siglas podem continuar existindo como apoio, mas não devem ser a identidade visual dominante do card.
+
+O foco principal do card deve ser:
+- ícone
+- nome do atendimento
+- ação clara de toque
+
+## Senha gerada
+Quando a senha for emitida, ela deve continuar sendo o ponto de maior destaque visual da tela.
 
 A senha gerada precisa ter:
+- tipografia muito forte
+- escala grande
+- contraste alto
+- leitura imediata
+- aparência de confirmação clara e segura
 
-Tipografia grande
-Peso visual forte
-Excelente contraste
-Leitura imediata
-Destaque visual superior a qualquer outro bloco da tela
+O card da senha deve parecer mais importante do que qualquer outro bloco da tela.
 
-Direção visual do ticket/senha gerada
+## Botões
+- botões devem ser grandes e táteis
+- o botão principal deve ter destaque real
+- foco visível sempre
+- boa legibilidade em mobile
+- hierarquia clara entre botão principal e secundário
+- evitar botões pequenos ou visualmente fracos
 
-O card da senha gerada deve ter presença forte na tela
-A área da senha deve parecer “o centro” da experiência
-O número/letra principal da senha deve usar tipografia mais encorpada, pesada e impactante
-A leitura da senha precisa ser fácil para pessoas com baixa visão
-O bloco deve transmitir sensação de confirmação, clareza e segurança
-Os botões de ação ligados à senha gerada devem parecer grandes, táteis e evidentes
+## Tipografia
+- títulos curtos e fortes
+- menos texto corrido
+- leitura rápida
+- tipografia principal da senha mais pesada e impactante
+- boa distinção entre título, opções, ações e confirmação
 
-Direção para botões
+## Paleta visual
+- base clara
+- azul principal mais vivo
+- superfícies suaves
+- contraste suficiente para acessibilidade
+- aparência leve e moderna
+- evitar excesso de cores concorrentes
 
-Botões grandes e fáceis de tocar
-Bordas suaves e acabamento moderno
-Boa distinção entre botão principal e secundário
-Visual consistente em mobile
-Estados visuais claros para hover, focus, active e disabled
-O foco precisa ficar visível para acessibilidade
+## Responsividade
+A tela deve ser pensada primeiro para celular.
 
-Direção para a área de seleção de atendimento
+Metas:
+- opções de atendimento visíveis sem rolagem inicial sempre que possível
+- boa leitura entre 360px e 430px
+- boa distribuição vertical
+- layout compacto sem parecer apertado
+- expansão limpa em telas maiores
 
-Os cards ou botões das opções de atendimento devem ser visualmente limpos e fáceis de entender
-As opções precisam parecer simples, rápidas e confiáveis
-O texto de cada opção deve ter boa legibilidade
-Ícones podem existir, mas não devem competir com a senha gerada
-O visual deve priorizar entendimento imediato e facilidade de toque
+## Acessibilidade obrigatória a preservar
+Nenhuma mudança visual pode quebrar:
+- modo alto contraste
+- modo de voz guiado
+- legibilidade forte
+- foco visível
+- botões acessíveis
+- leitura clara da senha gerada
 
-Paleta visual desejada
+## Regras de implementação
+- não alterar a lógica funcional do `/totem`
+- não quebrar emissão de senha
+- não quebrar alto contraste
+- não quebrar modo de voz guiado
+- não substituir a arquitetura atual por HTML exportado
+- implementar o visual diretamente no projeto atual
+- usar referências desta pasta apenas como guia visual e estrutural
 
-Base clara
-Azul principal mais vivo e moderno
-Tons neutros suaves para fundo e superfícies
-Contraste suficiente para acessibilidade
-Evitar excesso de cores concorrentes
-O azul deve ser usado para reforçar ações, destaques e identidade principal da tela
+## O que deve ser preservado
+- fluxo funcional existente
+- responsividade
+- acessibilidade
+- compatibilidade com Tailwind
+- compatibilidade com mobile
+- clareza da emissão de senha
 
-Tipografia
+## O que deve ser melhorado
+- clareza da primeira dobra no mobile
+- compactação do topo
+- presença dos ícones nos cards
+- redução de texto desnecessário
+- velocidade de entendimento da tela
+- destaque das ações principais
+- sensação de produto real e maduro
 
-Tipografia clara, moderna e altamente legível
-Títulos com presença forte
-Senha gerada com peso visual ainda maior que os títulos
-Hierarquia tipográfica bem definida entre:
-título principal
-instrução
-opções de atendimento
-senha gerada
-ações
+## Resumo final
+O `/totem` deve ser uma tela de autoatendimento rápida e óbvia.
 
-Responsividade
+Na primeira dobra, o usuário deve ver com clareza:
+- navegação compacta
+- recursos de acessibilidade em formato curto
+- opções de atendimento
+- e, quando existir, a senha gerada com destaque máximo
 
-O /totem deve ser tratado como mobile-first
-O layout precisa funcionar muito bem em largura de celular
-O conteúdo não deve parecer apertado ou improvisado em telas pequenas
-Em telas maiores, a interface pode respirar mais, mas sem perder o foco do fluxo principal
-A experiência deve continuar fluida em tablets e monitores
-
-Acessibilidade
-A evolução visual nunca pode quebrar os recursos de acessibilidade já implementados.
-
-É obrigatório preservar:
-
-modo alto contraste
-modo de voz guiado no /totem
-foco visível
-boa legibilidade
-bom contraste entre texto e fundo
-botões acessíveis e fáceis de localizar
-
-Regras importantes para implementação
-
-Não alterar a lógica funcional do /totem
-Não quebrar a geração de senha
-Não quebrar o modo de alto contraste
-Não quebrar o modo de voz guiado
-Não substituir a arquitetura atual por HTML bruto exportado
-Implementar o novo visual diretamente no projeto atual
-Usar as referências desta pasta apenas como guia visual e estrutural
-Priorizar mudanças visuais seguras, limpas e revisáveis
-
-O que deve ser preservado
-
-Estrutura funcional existente
-Fluxo de emissão de senha
-Comportamento de acessibilidade já implementado
-Compatibilidade com Tailwind
-Compatibilidade com mobile
-Clareza da interface
-
-O que deve ser melhorado
-
-Aparência geral do /totem
-Destaque da senha gerada
-Qualidade visual do card principal
-Acabamento dos botões
-Hierarquia visual
-Sensação de produto real e profissional
-Experiência mobile
-
-Resumo da intenção
-O /totem deve parecer um produto real de autoatendimento para saúde:
-moderno,
-limpo,
-confiável,
-acolhedor,
-acessível
-e extremamente claro na hora de mostrar a senha gerada.
+A nova versão deve parecer mais próxima de um produto real de saúde digital:
+mais limpa,
+mais direta,
+mais visual,
+mais acessível,
+e menos dependente de texto explicativo.
