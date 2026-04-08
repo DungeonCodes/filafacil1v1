@@ -1,4 +1,5 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getCurrentBusinessDate } from "@/lib/tickets/businessDate";
 import type {
   AsyncResult,
   CallNextDoctorInput,
@@ -12,6 +13,7 @@ type TicketRow = {
   id?: unknown;
   prefix?: unknown;
   ticket_number?: unknown;
+  ticket_date?: unknown;
   current_stage?: unknown;
   created_at?: unknown;
   called_at?: unknown;
@@ -116,9 +118,11 @@ function normalizeRecentCall(row: unknown): Omit<DoctorRecentCall, "ticketPrefix
 
 async function fetchCurrentDoctorTicket(queuePrefix: string, consultingRoom: string): Promise<AsyncResult<DoctorTicket | null>> {
   const supabase = getSupabaseBrowserClient();
+  const businessDate = getCurrentBusinessDate();
   const { data, error } = await supabase
     .from("tickets")
     .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room")
+    .eq("ticket_date", businessDate)
     .eq("current_stage", "called_doctor")
     .eq("prefix", queuePrefix)
     .eq("current_consulting_room", consultingRoom)
@@ -136,9 +140,11 @@ async function fetchCurrentDoctorTicket(queuePrefix: string, consultingRoom: str
 
 async function fetchWaitingDoctorQueue(queuePrefix: string): Promise<AsyncResult<DoctorTicket[]>> {
   const supabase = getSupabaseBrowserClient();
+  const businessDate = getCurrentBusinessDate();
   const { data, error } = await supabase
     .from("tickets")
     .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room")
+    .eq("ticket_date", businessDate)
     .eq("current_stage", "waiting_doctor")
     .eq("prefix", queuePrefix)
     .order("created_at", { ascending: true })
@@ -158,13 +164,14 @@ async function fetchWaitingDoctorQueue(queuePrefix: string): Promise<AsyncResult
 
 async function fetchRecentDoctorCalls(consultingRoom: string): Promise<AsyncResult<DoctorRecentCall[]>> {
   const supabase = getSupabaseBrowserClient();
+  const businessDate = getCurrentBusinessDate();
   const { data, error } = await supabase
     .from("calls")
     .select("id, ticket_id, stage, destination_label, called_at, called_by")
     .eq("destination_type", "doctor")
     .eq("destination_label", consultingRoom)
     .order("called_at", { ascending: false })
-    .limit(10);
+    .limit(30);
 
   if (error) {
     return { ok: false, error: getErrorMessage(error, "Nao foi possivel carregar o historico do consultorio.") };
@@ -182,7 +189,8 @@ async function fetchRecentDoctorCalls(consultingRoom: string): Promise<AsyncResu
   const uniqueTicketIds = [...new Set(recentCalls.map((call) => call.ticketId))];
   const { data: ticketsData, error: ticketsError } = await supabase
     .from("tickets")
-    .select("id, prefix, ticket_number")
+    .select("id, prefix, ticket_number, ticket_date")
+    .eq("ticket_date", businessDate)
     .in("id", uniqueTicketIds);
 
   if (ticketsError) {
@@ -220,7 +228,7 @@ async function fetchRecentDoctorCalls(consultingRoom: string): Promise<AsyncResu
         ticketNumber: ticket.ticketNumber
       }
     ];
-  });
+  }).slice(0, 10);
 
   return { ok: true, data: hydratedCalls };
 }

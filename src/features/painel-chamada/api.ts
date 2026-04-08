@@ -1,10 +1,12 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getCurrentBusinessDate } from "@/lib/tickets/businessDate";
 import type { AsyncResult, NowCallingTicket, PanelSnapshot, RecentCallItem, WaitingTicketItem } from "./types";
 
 type TicketRow = {
   id?: unknown;
   prefix?: unknown;
   ticket_number?: unknown;
+  ticket_date?: unknown;
   current_stage?: unknown;
   called_at?: unknown;
   created_at?: unknown;
@@ -137,9 +139,11 @@ function getErrorMessage(error: unknown, fallbackMessage: string): string {
 
 async function fetchNowCalling(): Promise<AsyncResult<NowCallingTicket | null>> {
   const supabase = getSupabaseBrowserClient();
+  const businessDate = getCurrentBusinessDate();
   const { data, error } = await supabase
     .from("tickets")
     .select("id, prefix, ticket_number, current_stage, called_at, created_at, current_consulting_room")
+    .eq("ticket_date", businessDate)
     .in("current_stage", CALLED_STAGES)
     .order("called_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
@@ -164,11 +168,12 @@ async function fetchNowCalling(): Promise<AsyncResult<NowCallingTicket | null>> 
 
 async function fetchRecentCalls(limit = 8): Promise<AsyncResult<RecentCallItem[]>> {
   const supabase = getSupabaseBrowserClient();
+  const businessDate = getCurrentBusinessDate();
   const { data, error } = await supabase
     .from("calls")
     .select("id, ticket_id, stage, destination_type, destination_label, called_at")
     .order("called_at", { ascending: false })
-    .limit(limit);
+    .limit(30);
 
   if (error) {
     return { ok: false, error: getErrorMessage(error, "Nao foi possivel carregar as ultimas chamadas.") };
@@ -186,7 +191,8 @@ async function fetchRecentCalls(limit = 8): Promise<AsyncResult<RecentCallItem[]
   const uniqueTicketIds = [...new Set(normalizedCalls.map((call) => call.ticketId))];
   const { data: ticketsData, error: ticketsError } = await supabase
     .from("tickets")
-    .select("id, prefix, ticket_number")
+    .select("id, prefix, ticket_number, ticket_date")
+    .eq("ticket_date", businessDate)
     .in("id", uniqueTicketIds);
 
   if (ticketsError) {
@@ -224,16 +230,18 @@ async function fetchRecentCalls(limit = 8): Promise<AsyncResult<RecentCallItem[]
         ticketNumber: ticket.ticketNumber
       }
     ];
-  });
+  }).slice(0, limit);
 
   return { ok: true, data: hydratedCalls };
 }
 
 async function fetchWaitingTickets(limit = 12): Promise<AsyncResult<WaitingTicketItem[]>> {
   const supabase = getSupabaseBrowserClient();
+  const businessDate = getCurrentBusinessDate();
   const { data, error } = await supabase
     .from("tickets")
     .select("id, prefix, ticket_number, current_stage, created_at")
+    .eq("ticket_date", businessDate)
     .in("current_stage", WAITING_STAGES)
     .order("created_at", { ascending: true })
     .limit(limit);
