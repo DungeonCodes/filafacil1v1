@@ -4,9 +4,11 @@ import type {
   AttendantSnapshot,
   AttendantTicket,
   CallNextAttendantInput,
-  ForwardTicketInput,
+  FinishInitialAttendanceInput,
   RecallTicketInput
 } from "./types";
+
+const BUSINESS_TIME_ZONE = "America/Sao_Paulo";
 
 type TicketRow = {
   id?: unknown;
@@ -80,13 +82,35 @@ function getErrorMessage(error: unknown, fallbackMessage: string): string {
   return fallbackMessage;
 }
 
+function getCurrentBusinessDate(): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BUSINESS_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  const parts = formatter.formatToParts(new Date());
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
 export async function loadAttendantSnapshot(queuePrefix: string): Promise<AsyncResult<AttendantSnapshot>> {
   try {
     const supabase = getSupabaseBrowserClient();
+    const businessDate = getCurrentBusinessDate();
 
     const { data: currentData, error: currentError } = await supabase
       .from("tickets")
       .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room")
+      .eq("ticket_date", businessDate)
       .eq("current_stage", "called_attendant")
       .eq("prefix", queuePrefix)
       .order("called_at", { ascending: false, nullsFirst: false })
@@ -100,6 +124,7 @@ export async function loadAttendantSnapshot(queuePrefix: string): Promise<AsyncR
     const { data: waitingData, error: waitingError } = await supabase
       .from("tickets")
       .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room")
+      .eq("ticket_date", businessDate)
       .eq("current_stage", "waiting_attendant")
       .eq("prefix", queuePrefix)
       .order("created_at", { ascending: true })
@@ -146,22 +171,26 @@ export async function callNextAttendant(input: CallNextAttendantInput): Promise<
   }
 }
 
-export async function forwardTicketToDoctor(input: ForwardTicketInput): Promise<AsyncResult<null>> {
+export async function finishInitialAttendance(input: FinishInitialAttendanceInput): Promise<AsyncResult<null>> {
   try {
     const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase.rpc("forward_ticket_to_doctor", {
-      p_ticket_id: input.ticketId,
-      p_destination_label: input.destinationLabel,
-      p_called_by: input.calledBy
-    });
+    const { error } = await supabase
+      .from("tickets")
+      .update({
+        current_stage: "waiting_doctor",
+        current_consulting_room: null,
+        called_at: null
+      })
+      .eq("id", input.ticketId)
+      .eq("current_stage", "called_attendant");
 
     if (error) {
-      return { ok: false, error: getErrorMessage(error, "Nao foi possivel encaminhar a senha para o medico.") };
+      return { ok: false, error: getErrorMessage(error, "Nao foi possivel finalizar o atendimento inicial.") };
     }
 
     return { ok: true, data: null };
   } catch (error) {
-    return { ok: false, error: getErrorMessage(error, "Erro inesperado ao encaminhar a senha.") };
+    return { ok: false, error: getErrorMessage(error, "Erro inesperado ao finalizar o atendimento inicial.") };
   }
 }
 

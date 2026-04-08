@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadQueues } from "@/features/totem/api";
 import { formatTicket } from "@/lib/tickets/formatTicket";
-import { callNextAttendant, forwardTicketToDoctor, loadAttendantSnapshot, recallCurrentTicket } from "./api";
+import { callNextAttendant, finishInitialAttendance, loadAttendantSnapshot, recallCurrentTicket } from "./api";
 import type { AttendantSnapshot } from "./types";
 import type { QueueOption } from "@/features/totem/types";
 import { MainTopNav } from "@/components/MainTopNav";
@@ -14,7 +14,6 @@ const INITIAL_SNAPSHOT: AttendantSnapshot = {
   waitingTickets: []
 };
 const CALL_DESTINATIONS = ["Mesa 1", "Mesa 2", "Mesa 3"] as const;
-const FORWARD_DESTINATIONS = ["Consultorio 001", "Consultorio 002", "Consultorio 003"] as const;
 const CALLED_BY_OPTIONS = ["Atendente", "Recepcao", "Triagem"] as const;
 
 type FeedbackState =
@@ -49,9 +48,6 @@ export function AtendenteScreen() {
   const [reloadVersion, setReloadVersion] = useState(0);
 
   const [destinationLabel, setDestinationLabel] = useState<(typeof CALL_DESTINATIONS)[number]>("Mesa 1");
-  const [forwardDestinationLabel, setForwardDestinationLabel] = useState<(typeof FORWARD_DESTINATIONS)[number]>(
-    "Consultorio 001"
-  );
   const [calledBy, setCalledBy] = useState<(typeof CALLED_BY_OPTIONS)[number]>("Atendente");
 
   useEffect(() => {
@@ -154,15 +150,47 @@ export function AtendenteScreen() {
       return;
     }
 
-    await runAction(
-      async () =>
-        callNextAttendant({
-          queuePrefix: selectedQueuePrefix,
-          destinationLabel,
-          calledBy
-        }),
-      "Proxima senha chamada com sucesso."
-    );
+    setIsActionRunning(true);
+
+    const previousCurrentTicketId = snapshot.currentTicket?.id ?? null;
+    const previousWaitingTicketIds = new Set(snapshot.waitingTickets.map((ticket) => ticket.id));
+    const callResult = await callNextAttendant({
+      queuePrefix: selectedQueuePrefix,
+      destinationLabel,
+      calledBy
+    });
+
+    if (!callResult.ok) {
+      setFeedback({ kind: "error", message: callResult.error ?? "Operacao nao concluida." });
+      setIsActionRunning(false);
+      return;
+    }
+
+    const snapshotResult = await loadAttendantSnapshot(selectedQueuePrefix);
+    if (!snapshotResult.ok) {
+      setFeedback({ kind: "error", message: "A chamada foi enviada, mas nao foi possivel confirmar a atualizacao do painel." });
+      setIsActionRunning(false);
+      return;
+    }
+
+    setSnapshot(snapshotResult.data);
+    const currentTicket = snapshotResult.data.currentTicket;
+    const didTransition =
+      currentTicket !== null &&
+      currentTicket.id !== previousCurrentTicketId &&
+      (previousWaitingTicketIds.size === 0 || previousWaitingTicketIds.has(currentTicket.id) || previousCurrentTicketId === null);
+
+    if (!didTransition) {
+      setFeedback({
+        kind: "error",
+        message: "Nenhuma senha elegivel foi chamada nesta fila. Verifique se ha atendimento em andamento ou senhas disponiveis hoje."
+      });
+      setIsActionRunning(false);
+      return;
+    }
+
+    setFeedback({ kind: "success", message: "Proxima senha chamada com sucesso." });
+    setIsActionRunning(false);
   }
 
   async function handleRecall() {
@@ -183,21 +211,20 @@ export function AtendenteScreen() {
     );
   }
 
-  async function handleForward() {
+  async function handleFinishAttendance() {
     if (!snapshot.currentTicket) {
-      setFeedback({ kind: "error", message: "Nao existe senha em atendimento para encaminhar." });
+      setFeedback({ kind: "error", message: "Nao existe senha em atendimento para finalizar." });
       return;
     }
 
     const ticketLabel = formatTicket(snapshot.currentTicket.prefix, snapshot.currentTicket.ticketNumber);
     await runAction(
       async () =>
-        forwardTicketToDoctor({
+        finishInitialAttendance({
           ticketId: snapshot.currentTicket?.id ?? 0,
-          destinationLabel: forwardDestinationLabel,
           calledBy
         }),
-      `Senha ${ticketLabel} encaminhada com sucesso para ${forwardDestinationLabel}.`
+      `Atendimento inicial da senha ${ticketLabel} finalizado com sucesso.`
     );
   }
 
@@ -228,7 +255,7 @@ export function AtendenteScreen() {
           </div>
         )}
 
-        <section className="grid gap-4 rounded-2xl border-2 border-slate-700 bg-slate-50 p-4 md:grid-cols-4">
+        <section className="grid gap-4 rounded-2xl border-2 border-slate-700 bg-slate-50 p-4 md:grid-cols-3">
           <label className="flex flex-col gap-2">
             <span className="text-sm font-bold uppercase tracking-wide text-slate-700">Fila</span>
             <select
@@ -254,24 +281,6 @@ export function AtendenteScreen() {
               className="min-h-12 rounded-xl border-2 border-slate-800 bg-white px-3 text-base font-semibold text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
             >
               {CALL_DESTINATIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex flex-col gap-2">
-            <span className="text-sm font-bold uppercase tracking-wide text-slate-700">Encaminhar para</span>
-            <select
-              value={forwardDestinationLabel}
-              onChange={(event) =>
-                setForwardDestinationLabel(event.target.value as (typeof FORWARD_DESTINATIONS)[number])
-              }
-              disabled={isActionRunning}
-              className="min-h-12 rounded-xl border-2 border-slate-800 bg-white px-3 text-base font-semibold text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
-            >
-              {FORWARD_DESTINATIONS.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
@@ -332,11 +341,11 @@ export function AtendenteScreen() {
               </button>
               <button
                 type="button"
-                onClick={() => void handleForward()}
+                onClick={() => void handleFinishAttendance()}
                 disabled={actionDisabled || !snapshot.currentTicket}
                 className="min-h-14 rounded-xl border-2 border-slate-900 bg-sky-200 px-4 text-base font-black text-slate-900 transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:border-slate-400 disabled:bg-slate-200 disabled:text-slate-400 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
               >
-                Encaminhar
+                Finalizar atendimento
               </button>
             </div>
           </article>

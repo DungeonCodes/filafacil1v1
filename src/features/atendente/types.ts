@@ -19,9 +19,8 @@ export interface CallNextAttendantInput {
   calledBy: string;
 }
 
-export interface ForwardTicketInput {
+export interface FinishInitialAttendanceInput {
   ticketId: number;
-  destinationLabel: string;
   calledBy: string;
 }
 
