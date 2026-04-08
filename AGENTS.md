@@ -1,52 +1,92 @@
-# AGENTS
+# AGENTS.md
 
-## Como usar este repositorio
-- Tratar `workflow/` como fonte de verdade para estado atual do produto, ultimo passo concluido e proximos passos.
-- Usar este arquivo como guia operacional curto para colaborar neste repositorio sem perder regras importantes de UX e acessibilidade.
-- Para tarefas visuais do `/totem`, ler tambem:
-  - `design/totem-reference/README.md`
-  - `design/totem-reference/visual-direction.md`
-  - `design/totem-reference/accessibility-notes.md`
-  - `.agents/skills/totem-ui/SKILL.md`
+Este repositório contém o projeto FilaFácil Acessível, um sistema web de gestão de filas para unidades de saúde com foco em acessibilidade multimodal.
 
-## Stack
-- Next.js 14 App Router
-- React 18
+## Objetivo do projeto
+- permitir geração de senhas por autoatendimento
+- exibir painel público de chamadas
+- operar fila inicial no painel do atendente
+- operar fila médica no painel do médico
+- exibir dashboard administrativo com métricas reais
+- garantir acessibilidade visual e auditiva
+
+## Stack principal
+- Next.js
+- React
 - TypeScript
 - Tailwind CSS
 - Supabase
-- Recharts
-- Vitest
+- PostgreSQL
+- Vercel
+- GitHub
 
 ## Como rodar localmente
-- Instalar dependencias: `npm ci`
-- Criar `.env.local` a partir de `.env.example`
-- Preencher credenciais do Supabase
-- Rodar ambiente local: `npm run dev`
+- npm install
+- npm run dev
 
 ## Comandos principais
-- `npm run lint`
-- `npm run test:run`
-- `npm run build`
-- `npm run typecheck`
+- npm run lint
+- npm run typecheck
+- npm run test:run
+- npm run build
 
-## Regras de trabalho
-- Preservar a logica funcional existente, salvo quando a tarefa pedir mudanca funcional explicita.
-- Tratar `/totem` como a tela mais sensivel de UX do sistema.
-- Priorizar mobile-first em layout, densidade visual e tamanho de toque.
-- Manter acessibilidade como requisito central, nao como acabamento.
-- Nao quebrar alto contraste, voz guiada do `/totem` nem audio do `/painel-chamada`.
-- Fazer mudancas pequenas, revisaveis e faceis de validar.
-- Evitar refatoracoes amplas quando um ajuste localizado resolver.
+## Variáveis de ambiente esperadas
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
 
-## Guardrails para UI do /totem
-- Dar prioridade maxima para a clareza da senha gerada.
-- Tratar a senha emitida como o elemento visual mais importante da tela apos a emissao.
-- Preferir botoes grandes, tateis e legiveis.
-- Manter visual clean, moderno e acolhedor, adequado a contexto de saude.
-- Evitar poluicao visual, excesso de blocos competindo entre si e microdetalhes decorativos.
-- Nao alterar o fluxo funcional do totem sem necessidade comprovada.
+## Regras gerais de trabalho
+- preservar a lógica funcional existente sempre que possível
+- fazer mudanças pequenas, seguras e revisáveis
+- não refatorar desnecessariamente
+- não quebrar rotas já funcionais
+- não usar chaves sensíveis no frontend
+- qualquer uso de service role deve ficar apenas no server-side
+- sempre manter compatibilidade com TypeScript, lint, tests e build
+- sempre priorizar mobile-first nas telas de uso operacional
+- sempre preservar acessibilidade existente
 
-## Observacao de validacao local
-- Neste workspace, `npm run typecheck` pode depender de `.next/types` atualizada.
-- Se necessario, rodar `npm run build` antes de `npm run typecheck`.
+## Regras de UX do projeto
+- o /totem é a tela mais sensível de UX do sistema
+- a senha gerada deve ser o elemento visual mais importante do /totem
+- botões precisam ser grandes, táteis e legíveis
+- a interface deve ser clara, limpa e previsível
+- evitar poluição visual
+- priorizar leitura rápida e entendimento imediato
+- em qualquer ajuste visual, preservar alto contraste e modo de voz guiado
+
+## Recursos de acessibilidade já implementados
+- modo alto contraste
+- áudio automático no painel de chamada
+- modo de voz guiado no /totem
+
+## Ao trabalhar em UI
+- priorizar legibilidade
+- priorizar contraste
+- priorizar responsividade mobile
+- preservar hierarquia visual
+- não quebrar acessibilidade já implementada
+
+## Ao trabalhar em lógica
+- preservar fluxo funcional do ticket
+- evitar alterar regras de negócio sem necessidade
+- manter consistência com os estágios do ticket:
+  - waiting_attendant
+  - called_attendant
+  - waiting_doctor
+  - called_doctor
+  - finished
+
+## Ao trabalhar com banco e Supabase
+- preferir mudanças compatíveis com a modelagem atual
+- documentar novas tabelas, RPCs ou policies
+- não quebrar consultas já usadas pelas telas
+
+## Definição de pronto
+Uma tarefa só deve ser considerada pronta quando:
+- a mudança funciona
+- TypeScript passa
+- lint passa
+- tests passam
+- build passa
+- o comportamento existente não foi quebrado
