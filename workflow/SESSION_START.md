@@ -6,9 +6,10 @@
 - Accessibility phases 1, 2, and 3 are present in code.
 - Admin dashboard includes user management.
 - Public queue schema SQL is only partially versioned in the repo.
+- Priority tickets exist in `/totem` and now drive call ordering in `/atendente` and `/medico`.
 
 ## Latest completed implementation phase
-- Accessibility Phase 3: guided voice mode on `/totem`.
+- Priority service Phase 2: priority tickets are called before normal tickets in attendant and doctor flows.
 
 ## Next recommended implementation phase
 - Version the missing base Supabase schema and queue RPC SQL into the repository before further backend changes.

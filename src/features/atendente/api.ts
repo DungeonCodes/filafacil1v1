@@ -1,5 +1,6 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getCurrentBusinessDate } from "@/lib/tickets/businessDate";
+import { callNextWithPriority } from "@/lib/tickets/callNextWithPriority";
 import type {
   AsyncResult,
   AttendantSnapshot,
@@ -17,6 +18,7 @@ type TicketRow = {
   created_at?: unknown;
   called_at?: unknown;
   current_consulting_room?: unknown;
+  is_priority?: unknown;
 };
 
 function toNumber(value: unknown): number | null {
@@ -66,7 +68,8 @@ function normalizeTicket(row: unknown): AttendantTicket | null {
     stage,
     createdAt,
     calledAt: toNullableString(candidate.called_at),
-    consultingRoom: toNullableString(candidate.current_consulting_room)
+    consultingRoom: toNullableString(candidate.current_consulting_room),
+    isPriority: candidate.is_priority === true
   };
 }
 
@@ -88,7 +91,7 @@ export async function loadAttendantSnapshot(queuePrefix: string): Promise<AsyncR
 
     const { data: currentData, error: currentError } = await supabase
       .from("tickets")
-      .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room")
+      .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room, is_priority")
       .eq("ticket_date", businessDate)
       .eq("current_stage", "called_attendant")
       .eq("prefix", queuePrefix)
@@ -102,10 +105,11 @@ export async function loadAttendantSnapshot(queuePrefix: string): Promise<AsyncR
 
     const { data: waitingData, error: waitingError } = await supabase
       .from("tickets")
-      .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room")
+      .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room, is_priority")
       .eq("ticket_date", businessDate)
       .eq("current_stage", "waiting_attendant")
       .eq("prefix", queuePrefix)
+      .order("is_priority", { ascending: false })
       .order("created_at", { ascending: true })
       .limit(20);
 
@@ -134,17 +138,16 @@ export async function loadAttendantSnapshot(queuePrefix: string): Promise<AsyncR
 export async function callNextAttendant(input: CallNextAttendantInput): Promise<AsyncResult<null>> {
   try {
     const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase.rpc("call_next_attendant", {
-      p_queue_prefix: input.queuePrefix,
-      p_destination_label: input.destinationLabel,
-      p_called_by: input.calledBy
+    return await callNextWithPriority({
+      supabase,
+      queuePrefix: input.queuePrefix,
+      waitingStage: "waiting_attendant",
+      calledStage: "called_attendant",
+      destinationType: "attendant",
+      destinationLabel: input.destinationLabel,
+      calledBy: input.calledBy,
+      currentConsultingRoom: null
     });
-
-    if (error) {
-      return { ok: false, error: getErrorMessage(error, "Nao foi possivel chamar a proxima senha.") };
-    }
-
-    return { ok: true, data: null };
   } catch (error) {
     return { ok: false, error: getErrorMessage(error, "Erro inesperado ao chamar a proxima senha.") };
   }

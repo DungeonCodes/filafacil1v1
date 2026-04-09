@@ -100,5 +100,7 @@ describe("atendente api", () => {
     expect(waitingQuery.eq).toHaveBeenCalledWith("ticket_date", expect.any(String));
     expect(waitingQuery.eq).toHaveBeenCalledWith("current_stage", "waiting_attendant");
     expect(waitingQuery.eq).toHaveBeenCalledWith("prefix", "CG");
+    expect(waitingQuery.order).toHaveBeenNthCalledWith(1, "is_priority", { ascending: false });
+    expect(waitingQuery.order).toHaveBeenNthCalledWith(2, "created_at", { ascending: true });
   });
 });

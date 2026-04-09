@@ -126,7 +126,7 @@ export function AtendenteScreen() {
     if (!snapshot.currentTicket) {
       return null;
     }
-    return formatTicket(snapshot.currentTicket.prefix, snapshot.currentTicket.ticketNumber);
+    return formatTicket(snapshot.currentTicket.prefix, snapshot.currentTicket.ticketNumber, 3, snapshot.currentTicket.isPriority === true);
   }, [snapshot.currentTicket]);
 
   async function runAction(action: () => Promise<{ ok: boolean; error?: string }>, successMessage: string) {
@@ -199,7 +199,7 @@ export function AtendenteScreen() {
       return;
     }
 
-    const ticketLabel = formatTicket(snapshot.currentTicket.prefix, snapshot.currentTicket.ticketNumber);
+    const ticketLabel = formatTicket(snapshot.currentTicket.prefix, snapshot.currentTicket.ticketNumber, 3, snapshot.currentTicket.isPriority === true);
     await runAction(
       async () =>
         recallCurrentTicket({
@@ -217,7 +217,7 @@ export function AtendenteScreen() {
       return;
     }
 
-    const ticketLabel = formatTicket(snapshot.currentTicket.prefix, snapshot.currentTicket.ticketNumber);
+    const ticketLabel = formatTicket(snapshot.currentTicket.prefix, snapshot.currentTicket.ticketNumber, 3, snapshot.currentTicket.isPriority === true);
     await runAction(
       async () =>
         finishInitialAttendance({
@@ -396,7 +396,7 @@ export function AtendenteScreen() {
                 <ul className="mt-4 space-y-3" aria-label="Fila de espera inicial">
                   {snapshot.waitingTickets.map((ticket) => (
                     <li key={ticket.id} className="flex items-center justify-between rounded-[1.35rem] border border-slate-200 bg-white px-4 py-4 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.2)]">
-                      <p className="text-2xl font-black tracking-tight text-slate-950">{formatTicket(ticket.prefix, ticket.ticketNumber)}</p>
+                      <p className="text-2xl font-black tracking-tight text-slate-950">{formatTicket(ticket.prefix, ticket.ticketNumber, 3, ticket.isPriority === true)}</p>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-600">
                         Entrada {formatTime(ticket.createdAt)}
                       </span>

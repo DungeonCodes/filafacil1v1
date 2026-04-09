@@ -31,6 +31,7 @@
   - `src/features/atendente/api.ts`
   - `src/features/medico/api.ts`
   - `src/features/admin/api.ts`
+- Priority-aware `call next` behavior for attendant and doctor now lives in shared app code via `src/lib/tickets/callNextWithPriority.ts`, instead of relying on external RPC ordering rules that are not versioned in the repository.
 - Admin user management is server-side through Next.js route handlers under `src/app/api/admin/`.
 
 ## Accessibility architecture

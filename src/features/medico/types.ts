@@ -6,6 +6,7 @@ export interface DoctorTicket {
   createdAt: string;
   calledAt: string | null;
   consultingRoom: string | null;
+  isPriority?: boolean;
 }
 
 export interface DoctorRecentCall {
@@ -17,6 +18,7 @@ export interface DoctorRecentCall {
   ticketPrefix: string;
   ticketNumber: number;
   calledBy: string | null;
+  isPriority?: boolean;
 }
 
 export interface DoctorSnapshot {
