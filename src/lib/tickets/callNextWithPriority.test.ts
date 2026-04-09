@@ -49,7 +49,7 @@ describe("callNextWithPriority", () => {
     });
 
     expect(result).toEqual({ ok: true, data: null });
-    expect(nextWaitingQuery.order).toHaveBeenNthCalledWith(1, "is_priority", { ascending: false });
+    expect(nextWaitingQuery.order).toHaveBeenNthCalledWith(1, "is_priority", { ascending: false, nullsFirst: false });
     expect(nextWaitingQuery.order).toHaveBeenNthCalledWith(2, "created_at", { ascending: true });
     expect(updateQuery.update).toHaveBeenCalledWith({
       current_stage: "called_attendant",
@@ -132,7 +132,7 @@ describe("callNextWithPriority", () => {
     });
 
     expect(result).toEqual({ ok: true, data: null });
-    expect(nextWaitingQuery.order).toHaveBeenNthCalledWith(1, "is_priority", { ascending: false });
+    expect(nextWaitingQuery.order).toHaveBeenNthCalledWith(1, "is_priority", { ascending: false, nullsFirst: false });
     expect(nextWaitingQuery.order).toHaveBeenNthCalledWith(2, "created_at", { ascending: true });
     expect(updateQuery.update).toHaveBeenCalledWith({
       current_stage: "called_doctor",
@@ -147,5 +147,64 @@ describe("callNextWithPriority", () => {
       called_by: "Medico",
       called_at: "2026-04-08T13:45:00.000Z"
     });
+  });
+
+  it("falls back to FIFO-only lookup when the priority column is unavailable", async () => {
+    const currentCalledQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null })
+    };
+    const nextWaitingPriorityQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: "Could not find the 'is_priority' column of 'tickets' in the schema cache" }
+      })
+    };
+    const nextWaitingLegacyQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [{ id: 55 }], error: null })
+    };
+    const updateLimit = vi.fn().mockResolvedValue({ data: [{ id: 55 }], error: null });
+    const updateSelect = vi.fn().mockReturnValue({ limit: updateLimit });
+    const updateEqStage = vi.fn().mockReturnValue({ select: updateSelect });
+    const updateEqId = vi.fn().mockReturnValue({ eq: updateEqStage });
+    const updateQuery = {
+      update: vi.fn().mockReturnValue({ eq: updateEqId })
+    };
+    const callsInsert = vi.fn().mockResolvedValue({ error: null });
+    const callsQuery = {
+      insert: callsInsert
+    };
+    const from = vi
+      .fn()
+      .mockReturnValueOnce(currentCalledQuery)
+      .mockReturnValueOnce(nextWaitingPriorityQuery)
+      .mockReturnValueOnce(nextWaitingLegacyQuery)
+      .mockReturnValueOnce(updateQuery)
+      .mockReturnValueOnce(callsQuery);
+
+    const result = await callNextWithPriority({
+      supabase: { from },
+      queuePrefix: "CG",
+      waitingStage: "waiting_attendant",
+      calledStage: "called_attendant",
+      destinationType: "attendant",
+      destinationLabel: "Mesa 1",
+      calledBy: "Atendente",
+      currentConsultingRoom: null
+    });
+
+    expect(result).toEqual({ ok: true, data: null });
+    expect(nextWaitingPriorityQuery.order).toHaveBeenNthCalledWith(1, "is_priority", { ascending: false, nullsFirst: false });
+    expect(nextWaitingLegacyQuery.order).toHaveBeenCalledTimes(1);
+    expect(nextWaitingLegacyQuery.order).toHaveBeenCalledWith("created_at", { ascending: true });
+    expect(updateEqId).toHaveBeenCalledWith("id", 55);
+    expect(callsInsert).toHaveBeenCalledTimes(1);
   });
 });

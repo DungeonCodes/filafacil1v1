@@ -1,4 +1,5 @@
 import { getCurrentBusinessDate } from "./businessDate";
+import { isPriorityColumnUnavailable, PRIORITY_DESC_ORDER } from "./prioritySupport";
 
 type TicketStage = "waiting_attendant" | "called_attendant" | "waiting_doctor" | "called_doctor";
 type DestinationType = "attendant" | "doctor";
@@ -67,15 +68,25 @@ export async function callNextWithPriority(input: CallNextWithPriorityInput): Pr
       return { ok: true, data: null };
     }
 
-    const nextWaitingResult = await input.supabase
-      .from("tickets")
-      .select("id")
-      .eq("ticket_date", businessDate)
-      .eq("current_stage", input.waitingStage)
-      .eq("prefix", input.queuePrefix)
-      .order("is_priority", { ascending: false })
-      .order("created_at", { ascending: true })
-      .limit(1);
+    async function fetchNextWaitingTicket(prioritizeByFlag: boolean) {
+      const query = input.supabase
+        .from("tickets")
+        .select("id")
+        .eq("ticket_date", businessDate)
+        .eq("current_stage", input.waitingStage)
+        .eq("prefix", input.queuePrefix);
+
+      if (prioritizeByFlag) {
+        query.order("is_priority", PRIORITY_DESC_ORDER);
+      }
+
+      return await query.order("created_at", { ascending: true }).limit(1);
+    }
+
+    let nextWaitingResult = await fetchNextWaitingTicket(true);
+    if (nextWaitingResult.error && isPriorityColumnUnavailable(nextWaitingResult.error)) {
+      nextWaitingResult = await fetchNextWaitingTicket(false);
+    }
 
     if (nextWaitingResult.error) {
       return { ok: false, error: getErrorMessage(nextWaitingResult.error, "Nao foi possivel localizar a proxima senha elegivel.") };
