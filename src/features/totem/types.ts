@@ -9,6 +9,7 @@ export interface TicketPayload {
   ticketNumber: number;
   ticketDate?: string;
   currentStage?: string;
+  isPriority?: boolean;
 }
 
 export type AsyncResult<T> = { ok: true; data: T } | { ok: false; error: string };

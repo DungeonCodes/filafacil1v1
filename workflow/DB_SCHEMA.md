@@ -2,6 +2,7 @@
 
 ## Versioned SQL in repository
 - `supabase/auth.sql`
+- `supabase/tickets_priority_phase1.sql`
 
 This file creates:
 - `public.app_users`
@@ -21,7 +22,7 @@ This file creates:
 - `queues`
   - fields used: `id`, `name`, `prefix`
 - `tickets`
-  - fields used: `id`, `queue_id`, `prefix`, `ticket_number`, `ticket_date`, `current_stage`, `created_at`, `called_at`, `current_consulting_room`, `finished_at`
+  - fields used: `id`, `queue_id`, `prefix`, `ticket_number`, `ticket_date`, `current_stage`, `created_at`, `called_at`, `current_consulting_room`, `finished_at`, `is_priority`
 - `calls`
   - fields used: `id`, `ticket_id`, `stage`, `destination_type`, `destination_label`, `called_by`, `called_at`
 

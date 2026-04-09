@@ -17,7 +17,7 @@ describe("TotemScreen", () => {
     vi.clearAllMocks();
   });
 
-  it("renders queues loaded from database", async () => {
+  it("requires choosing normal or priority before showing queue cards", async () => {
     mockedLoadQueues.mockResolvedValue({
       ok: true,
       data: [
@@ -33,7 +33,12 @@ describe("TotemScreen", () => {
     render(<TotemScreen />);
     const user = userEvent.setup();
 
-    expect(screen.getByText("Carregando opcoes de atendimento...")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Selecionar atendimento normal" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Selecionar atendimento prioritario" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Gerar senha para Clinico Geral" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Selecionar atendimento normal" }));
+
     expect(await screen.findByRole("button", { name: "Gerar senha para Clinico Geral" })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Gerar senha para Pediatria" })).toBeInTheDocument();
     expect(screen.queryByText("Selecionar")).not.toBeInTheDocument();
@@ -43,7 +48,7 @@ describe("TotemScreen", () => {
     expect(await screen.findByText("Consultas e triagem inicial.")).toBeInTheDocument();
   });
 
-  it("generates and displays formatted ticket", async () => {
+  it("generates and displays a priority-formatted ticket after choosing atendimento prioritario", async () => {
     mockedLoadQueues.mockResolvedValue({
       ok: true,
       data: [{ id: 1, name: "Clinico Geral", prefix: "CG" }]
@@ -53,17 +58,19 @@ describe("TotemScreen", () => {
       data: {
         prefix: "CG",
         ticketNumber: 1,
-        currentStage: "waiting_attendant"
+        currentStage: "waiting_attendant",
+        isPriority: true
       }
     });
 
     render(<TotemScreen />);
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Gerar senha para Clinico Geral" }));
+    await user.click(await screen.findByRole("button", { name: "Selecionar atendimento prioritario" }));
+    await user.click(await screen.findByRole("button", { name: "Gerar senha prioritaria para Clinico Geral" }));
 
-    expect(mockedCreateNextTicket).toHaveBeenCalledWith("CG");
-    expect(await screen.findByRole("status")).toHaveTextContent("CG-001");
+    expect(mockedCreateNextTicket).toHaveBeenCalledWith("CG", true);
+    expect(await screen.findByRole("status")).toHaveTextContent("PCG-001");
   });
 
   it("shows a friendly error when ticket generation fails", async () => {
@@ -79,8 +86,10 @@ describe("TotemScreen", () => {
     render(<TotemScreen />);
     const user = userEvent.setup();
 
+    await user.click(await screen.findByRole("button", { name: "Selecionar atendimento normal" }));
     await user.click(await screen.findByRole("button", { name: "Gerar senha para Exames" }));
 
+    expect(mockedCreateNextTicket).toHaveBeenCalledWith("EX", false);
     expect(await screen.findByRole("alert")).toHaveTextContent("Erro de comunicacao com o Supabase.");
   });
 });

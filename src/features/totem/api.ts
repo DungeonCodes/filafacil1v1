@@ -7,11 +7,12 @@ type QueueRow = {
   prefix: unknown;
 };
 
-type TicketRpcRow = {
+type TicketApiRow = {
   prefix?: unknown;
-  ticket_number?: unknown;
-  ticket_date?: unknown;
-  current_stage?: unknown;
+  ticketNumber?: unknown;
+  ticketDate?: unknown;
+  currentStage?: unknown;
+  isPriority?: unknown;
 };
 
 function normalizeQueueRows(rows: unknown): QueueOption[] {
@@ -41,32 +42,45 @@ function normalizeQueueRows(rows: unknown): QueueOption[] {
   });
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
+}
+
 function normalizeTicketPayload(data: unknown): TicketPayload | null {
   const row = Array.isArray(data) ? data[0] : data;
   if (!row || typeof row !== "object") {
     return null;
   }
 
-  const candidate = row as TicketRpcRow;
+  const candidate = row as TicketApiRow;
   const prefix = typeof candidate.prefix === "string" ? candidate.prefix : null;
-  const numberCandidate = Number(candidate.ticket_number);
+  const numberCandidate = Number(candidate.ticketNumber);
 
   if (!prefix || !Number.isFinite(numberCandidate)) {
     return null;
   }
 
-  const ticketDate = typeof candidate.ticket_date === "string" ? candidate.ticket_date : undefined;
-  const currentStage = typeof candidate.current_stage === "string" ? candidate.current_stage : undefined;
+  const ticketDate = typeof candidate.ticketDate === "string" ? candidate.ticketDate : undefined;
+  const currentStage = typeof candidate.currentStage === "string" ? candidate.currentStage : undefined;
+  const isPriority = candidate.isPriority === true;
 
   return {
     prefix,
     ticketNumber: numberCandidate,
     ticketDate,
-    currentStage
+    currentStage,
+    isPriority
   };
 }
 
 function getErrorMessage(error: unknown, fallbackMessage: string): string {
+  if (error && typeof error === "object" && "error" in error) {
+    const apiError = (error as { error?: unknown }).error;
+    if (typeof apiError === "string" && apiError.trim().length > 0) {
+      return apiError;
+    }
+  }
+
   if (error && typeof error === "object" && "message" in error) {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string" && message.trim().length > 0) {
@@ -92,16 +106,25 @@ export async function loadQueues(): Promise<AsyncResult<QueueOption[]>> {
   }
 }
 
-export async function createNextTicket(queuePrefix: string): Promise<AsyncResult<TicketPayload>> {
+export async function createNextTicket(queuePrefix: string, isPriority = false): Promise<AsyncResult<TicketPayload>> {
   try {
-    const supabase = getSupabaseBrowserClient();
-    const { data, error } = await supabase.rpc("create_next_ticket", { p_queue_prefix: queuePrefix });
+    const response = await fetch("/api/totem/tickets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        queuePrefix,
+        isPriority
+      })
+    });
 
-    if (error) {
-      return { ok: false, error: getErrorMessage(error, "Nao foi possivel gerar a senha.") };
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!response.ok) {
+      return { ok: false, error: getErrorMessage(isObject(payload) ? payload : null, "Nao foi possivel gerar a senha.") };
     }
 
-    const ticket = normalizeTicketPayload(data);
+    const ticket = normalizeTicketPayload(isObject(payload) ? payload.data : null);
     if (!ticket) {
       return { ok: false, error: "Resposta invalida ao gerar a senha." };
     }
