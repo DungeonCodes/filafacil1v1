@@ -46,3 +46,8 @@
 ### 2026-03-20 - Missing base DB schema must be documented before backend changes
 - The repository does not version the base SQL for `queues`, `tickets`, `calls`, or queue RPCs.
 - Future backend work should first close this source-of-truth gap or explicitly work around it.
+
+### 2026-04-08 - Priority call ordering lives in app-side shared logic
+- Priority ordering for `call next` is now implemented in `src/lib/tickets/callNextWithPriority.ts`.
+- The app orders by `is_priority desc` and then `created_at asc` for both attendant and doctor waiting flows.
+- This avoids depending on external RPC ordering rules that are not versioned in the repository.

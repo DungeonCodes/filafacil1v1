@@ -8,6 +8,7 @@ export interface NowCallingTicket {
   calledAt: string | null;
   createdAt: string;
   consultingRoom: string | null;
+  isPriority?: boolean;
 }
 
 export interface RecentCallItem {
@@ -19,6 +20,7 @@ export interface RecentCallItem {
   calledAt: string;
   ticketPrefix: string;
   ticketNumber: number;
+  isPriority?: boolean;
 }
 
 export interface WaitingTicketItem {
@@ -27,6 +29,7 @@ export interface WaitingTicketItem {
   ticketNumber: number;
   stage: PanelStage;
   createdAt: string;
+  isPriority?: boolean;
 }
 
 export interface PanelSnapshot {

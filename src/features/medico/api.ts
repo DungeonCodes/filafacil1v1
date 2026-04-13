@@ -1,5 +1,6 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getCurrentBusinessDate } from "@/lib/tickets/businessDate";
+import { callNextWithPriority } from "@/lib/tickets/callNextWithPriority";
 import type {
   AsyncResult,
   CallNextDoctorInput,
@@ -18,6 +19,7 @@ type TicketRow = {
   created_at?: unknown;
   called_at?: unknown;
   current_consulting_room?: unknown;
+  is_priority?: unknown;
 };
 
 type CallRow = {
@@ -87,7 +89,8 @@ function normalizeDoctorTicket(row: unknown): DoctorTicket | null {
     stage,
     createdAt,
     calledAt: toNullableString(candidate.called_at),
-    consultingRoom: toNullableString(candidate.current_consulting_room)
+    consultingRoom: toNullableString(candidate.current_consulting_room),
+    isPriority: candidate.is_priority === true
   };
 }
 
@@ -121,7 +124,7 @@ async function fetchCurrentDoctorTicket(queuePrefix: string, consultingRoom: str
   const businessDate = getCurrentBusinessDate();
   const { data, error } = await supabase
     .from("tickets")
-    .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room")
+    .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room, is_priority")
     .eq("ticket_date", businessDate)
     .eq("current_stage", "called_doctor")
     .eq("prefix", queuePrefix)
@@ -143,10 +146,11 @@ async function fetchWaitingDoctorQueue(queuePrefix: string): Promise<AsyncResult
   const businessDate = getCurrentBusinessDate();
   const { data, error } = await supabase
     .from("tickets")
-    .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room")
+    .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room, is_priority")
     .eq("ticket_date", businessDate)
     .eq("current_stage", "waiting_doctor")
     .eq("prefix", queuePrefix)
+    .order("is_priority", { ascending: false })
     .order("created_at", { ascending: true })
     .limit(20);
 
@@ -189,7 +193,7 @@ async function fetchRecentDoctorCalls(consultingRoom: string): Promise<AsyncResu
   const uniqueTicketIds = [...new Set(recentCalls.map((call) => call.ticketId))];
   const { data: ticketsData, error: ticketsError } = await supabase
     .from("tickets")
-    .select("id, prefix, ticket_number, ticket_date")
+    .select("id, prefix, ticket_number, ticket_date, is_priority")
     .eq("ticket_date", businessDate)
     .in("id", uniqueTicketIds);
 
@@ -197,7 +201,7 @@ async function fetchRecentDoctorCalls(consultingRoom: string): Promise<AsyncResu
     return { ok: false, error: getErrorMessage(ticketsError, "Nao foi possivel cruzar os dados de historico.") };
   }
 
-  const ticketLookup = new Map<number, { prefix: string; ticketNumber: number }>();
+  const ticketLookup = new Map<number, { prefix: string; ticketNumber: number; isPriority: boolean }>();
   for (const row of Array.isArray(ticketsData) ? ticketsData : []) {
     if (!row || typeof row !== "object") {
       continue;
@@ -212,7 +216,11 @@ async function fetchRecentDoctorCalls(consultingRoom: string): Promise<AsyncResu
       continue;
     }
 
-    ticketLookup.set(id, { prefix, ticketNumber });
+    ticketLookup.set(id, {
+      prefix,
+      ticketNumber,
+      isPriority: candidate.is_priority === true
+    });
   }
 
   const hydratedCalls = recentCalls.flatMap((call) => {
@@ -225,7 +233,8 @@ async function fetchRecentDoctorCalls(consultingRoom: string): Promise<AsyncResu
       {
         ...call,
         ticketPrefix: ticket.prefix,
-        ticketNumber: ticket.ticketNumber
+        ticketNumber: ticket.ticketNumber,
+        isPriority: ticket.isPriority
       }
     ];
   }).slice(0, 10);
@@ -267,17 +276,16 @@ export async function loadDoctorSnapshot(queuePrefix: string, consultingRoom: st
 export async function callNextDoctor(input: CallNextDoctorInput): Promise<AsyncResult<null>> {
   try {
     const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase.rpc("call_next_doctor", {
-      p_queue_prefix: input.queuePrefix,
-      p_consulting_room: input.consultingRoom,
-      p_called_by: input.calledBy
+    return await callNextWithPriority({
+      supabase,
+      queuePrefix: input.queuePrefix,
+      waitingStage: "waiting_doctor",
+      calledStage: "called_doctor",
+      destinationType: "doctor",
+      destinationLabel: input.consultingRoom,
+      calledBy: input.calledBy,
+      currentConsultingRoom: input.consultingRoom
     });
-
-    if (error) {
-      return { ok: false, error: getErrorMessage(error, "Nao foi possivel chamar a proxima senha medica.") };
-    }
-
-    return { ok: true, data: null };
   } catch (error) {
     return { ok: false, error: getErrorMessage(error, "Erro inesperado ao chamar a proxima senha medica.") };
   }

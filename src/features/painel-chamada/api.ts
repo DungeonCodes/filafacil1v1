@@ -11,6 +11,7 @@ type TicketRow = {
   called_at?: unknown;
   created_at?: unknown;
   current_consulting_room?: unknown;
+  is_priority?: unknown;
 };
 
 type CallRow = {
@@ -71,7 +72,8 @@ function normalizeNowCallingTicket(row: unknown): NowCallingTicket | null {
     stage,
     calledAt: toNullableString(candidate.called_at),
     createdAt,
-    consultingRoom: toNullableString(candidate.current_consulting_room)
+    consultingRoom: toNullableString(candidate.current_consulting_room),
+    isPriority: candidate.is_priority === true
   };
 }
 
@@ -96,7 +98,8 @@ function normalizeWaitingTicket(row: unknown): WaitingTicketItem | null {
     prefix,
     ticketNumber,
     stage,
-    createdAt
+    createdAt,
+    isPriority: candidate.is_priority === true
   };
 }
 
@@ -142,7 +145,7 @@ async function fetchNowCalling(): Promise<AsyncResult<NowCallingTicket | null>> 
   const businessDate = getCurrentBusinessDate();
   const { data, error } = await supabase
     .from("tickets")
-    .select("id, prefix, ticket_number, current_stage, called_at, created_at, current_consulting_room")
+    .select("id, prefix, ticket_number, current_stage, called_at, created_at, current_consulting_room, is_priority")
     .eq("ticket_date", businessDate)
     .in("current_stage", CALLED_STAGES)
     .order("called_at", { ascending: false, nullsFirst: false })
@@ -191,7 +194,7 @@ async function fetchRecentCalls(limit = 8): Promise<AsyncResult<RecentCallItem[]
   const uniqueTicketIds = [...new Set(normalizedCalls.map((call) => call.ticketId))];
   const { data: ticketsData, error: ticketsError } = await supabase
     .from("tickets")
-    .select("id, prefix, ticket_number, ticket_date")
+    .select("id, prefix, ticket_number, ticket_date, is_priority")
     .eq("ticket_date", businessDate)
     .in("id", uniqueTicketIds);
 
@@ -199,7 +202,7 @@ async function fetchRecentCalls(limit = 8): Promise<AsyncResult<RecentCallItem[]
     return { ok: false, error: getErrorMessage(ticketsError, "Nao foi possivel cruzar dados das chamadas.") };
   }
 
-  const ticketLookup = new Map<number, { prefix: string; ticketNumber: number }>();
+  const ticketLookup = new Map<number, { prefix: string; ticketNumber: number; isPriority: boolean }>();
   for (const row of Array.isArray(ticketsData) ? ticketsData : []) {
     if (!row || typeof row !== "object") {
       continue;
@@ -214,7 +217,11 @@ async function fetchRecentCalls(limit = 8): Promise<AsyncResult<RecentCallItem[]
       continue;
     }
 
-    ticketLookup.set(id, { prefix, ticketNumber });
+    ticketLookup.set(id, {
+      prefix,
+      ticketNumber,
+      isPriority: candidate.is_priority === true
+    });
   }
 
   const hydratedCalls = normalizedCalls.flatMap((call) => {
@@ -227,7 +234,8 @@ async function fetchRecentCalls(limit = 8): Promise<AsyncResult<RecentCallItem[]
       {
         ...call,
         ticketPrefix: ticket.prefix,
-        ticketNumber: ticket.ticketNumber
+        ticketNumber: ticket.ticketNumber,
+        isPriority: ticket.isPriority
       }
     ];
   }).slice(0, limit);
@@ -240,9 +248,10 @@ async function fetchWaitingTickets(limit = 12): Promise<AsyncResult<WaitingTicke
   const businessDate = getCurrentBusinessDate();
   const { data, error } = await supabase
     .from("tickets")
-    .select("id, prefix, ticket_number, current_stage, created_at")
+    .select("id, prefix, ticket_number, current_stage, created_at, is_priority")
     .eq("ticket_date", businessDate)
     .in("current_stage", WAITING_STAGES)
+    .order("is_priority", { ascending: false })
     .order("created_at", { ascending: true })
     .limit(limit);
 

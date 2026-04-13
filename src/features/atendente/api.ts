@@ -1,5 +1,7 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getCurrentBusinessDate } from "@/lib/tickets/businessDate";
+import { callNextWithPriority } from "@/lib/tickets/callNextWithPriority";
+import { isPriorityColumnUnavailable, PRIORITY_DESC_ORDER } from "@/lib/tickets/prioritySupport";
 import type {
   AsyncResult,
   AttendantSnapshot,
@@ -17,6 +19,7 @@ type TicketRow = {
   created_at?: unknown;
   called_at?: unknown;
   current_consulting_room?: unknown;
+  is_priority?: unknown;
 };
 
 function toNumber(value: unknown): number | null {
@@ -66,7 +69,8 @@ function normalizeTicket(row: unknown): AttendantTicket | null {
     stage,
     createdAt,
     calledAt: toNullableString(candidate.called_at),
-    consultingRoom: toNullableString(candidate.current_consulting_room)
+    consultingRoom: toNullableString(candidate.current_consulting_room),
+    isPriority: candidate.is_priority === true
   };
 }
 
@@ -81,40 +85,64 @@ function getErrorMessage(error: unknown, fallbackMessage: string): string {
   return fallbackMessage;
 }
 
+const ATTENDANT_BASE_TICKET_COLUMNS = "id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room";
+
+function getAttendantTicketColumns(includePriority: boolean): string {
+  return includePriority ? `${ATTENDANT_BASE_TICKET_COLUMNS}, is_priority` : ATTENDANT_BASE_TICKET_COLUMNS;
+}
+
 export async function loadAttendantSnapshot(queuePrefix: string): Promise<AsyncResult<AttendantSnapshot>> {
   try {
     const supabase = getSupabaseBrowserClient();
     const businessDate = getCurrentBusinessDate();
 
-    const { data: currentData, error: currentError } = await supabase
-      .from("tickets")
-      .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room")
-      .eq("ticket_date", businessDate)
-      .eq("current_stage", "called_attendant")
-      .eq("prefix", queuePrefix)
-      .order("called_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(1);
-
-    if (currentError) {
-      return { ok: false, error: getErrorMessage(currentError, "Nao foi possivel carregar a senha atual.") };
+    async function fetchCurrentTicket(includePriority: boolean) {
+      return await supabase
+        .from("tickets")
+        .select(getAttendantTicketColumns(includePriority))
+        .eq("ticket_date", businessDate)
+        .eq("current_stage", "called_attendant")
+        .eq("prefix", queuePrefix)
+        .order("called_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(1);
     }
 
-    const { data: waitingData, error: waitingError } = await supabase
-      .from("tickets")
-      .select("id, prefix, ticket_number, current_stage, created_at, called_at, current_consulting_room")
-      .eq("ticket_date", businessDate)
-      .eq("current_stage", "waiting_attendant")
-      .eq("prefix", queuePrefix)
-      .order("created_at", { ascending: true })
-      .limit(20);
+    async function fetchWaitingTickets(includePriority: boolean) {
+      const query = supabase
+        .from("tickets")
+        .select(getAttendantTicketColumns(includePriority))
+        .eq("ticket_date", businessDate)
+        .eq("current_stage", "waiting_attendant")
+        .eq("prefix", queuePrefix);
 
-    if (waitingError) {
-      return { ok: false, error: getErrorMessage(waitingError, "Nao foi possivel carregar a fila de espera inicial.") };
+      if (includePriority) {
+        query.order("is_priority", PRIORITY_DESC_ORDER);
+      }
+
+      return await query.order("created_at", { ascending: true }).limit(20);
     }
 
-    const currentTicket = normalizeTicket(Array.isArray(currentData) ? currentData[0] : null);
-    const waitingTickets = (Array.isArray(waitingData) ? waitingData : []).flatMap((row) => {
+    let currentResult = await fetchCurrentTicket(true);
+    if (currentResult.error && isPriorityColumnUnavailable(currentResult.error)) {
+      currentResult = await fetchCurrentTicket(false);
+    }
+
+    if (currentResult.error) {
+      return { ok: false, error: getErrorMessage(currentResult.error, "Nao foi possivel carregar a senha atual.") };
+    }
+
+    let waitingResult = await fetchWaitingTickets(true);
+    if (waitingResult.error && isPriorityColumnUnavailable(waitingResult.error)) {
+      waitingResult = await fetchWaitingTickets(false);
+    }
+
+    if (waitingResult.error) {
+      return { ok: false, error: getErrorMessage(waitingResult.error, "Nao foi possivel carregar a fila de espera inicial.") };
+    }
+
+    const currentTicket = normalizeTicket(Array.isArray(currentResult.data) ? currentResult.data[0] : null);
+    const waitingTickets = (Array.isArray(waitingResult.data) ? waitingResult.data : []).flatMap((row) => {
       const ticket = normalizeTicket(row);
       return ticket ? [ticket] : [];
     });
@@ -134,17 +162,16 @@ export async function loadAttendantSnapshot(queuePrefix: string): Promise<AsyncR
 export async function callNextAttendant(input: CallNextAttendantInput): Promise<AsyncResult<null>> {
   try {
     const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase.rpc("call_next_attendant", {
-      p_queue_prefix: input.queuePrefix,
-      p_destination_label: input.destinationLabel,
-      p_called_by: input.calledBy
+    return await callNextWithPriority({
+      supabase,
+      queuePrefix: input.queuePrefix,
+      waitingStage: "waiting_attendant",
+      calledStage: "called_attendant",
+      destinationType: "attendant",
+      destinationLabel: input.destinationLabel,
+      calledBy: input.calledBy,
+      currentConsultingRoom: null
     });
-
-    if (error) {
-      return { ok: false, error: getErrorMessage(error, "Nao foi possivel chamar a proxima senha.") };
-    }
-
-    return { ok: true, data: null };
   } catch (error) {
     return { ok: false, error: getErrorMessage(error, "Erro inesperado ao chamar a proxima senha.") };
   }

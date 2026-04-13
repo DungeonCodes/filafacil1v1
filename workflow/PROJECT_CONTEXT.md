@@ -17,6 +17,7 @@
 ## Current product state from repository
 - Core queue flow is implemented across totem, attendant, doctor, public panel, and admin dashboard.
 - Ticket formatting is done in app code via `formatTicket(prefix, ticketNumber)`.
+- Tickets now support `is_priority`, display `P` in the formatted label when applicable, and priority ordering is active in attendant and doctor call-next flows.
 - Authentication is implemented with Supabase Auth plus a custom `app_users` role table.
 - Admin user bootstrap exists in code:
   - username: `ADM`
@@ -39,4 +40,4 @@
 - The repository does **not** contain the base Supabase SQL schema for `queues`, `tickets`, `calls`, or the queue RPC functions used by the app.
 - The repository only versions `supabase/auth.sql`.
 - There is no seed script in `package.json`.
-- Any future backend/database work must first account for this missing source-of-truth gap.
+- Any future backend/database work must first account for this missing source-of-truth gap, or explicitly follow the current app-side workarounds now used for priority-aware call ordering.

@@ -6,6 +6,7 @@ export interface AttendantTicket {
   createdAt: string;
   calledAt: string | null;
   consultingRoom: string | null;
+  isPriority?: boolean;
 }
 
 export interface AttendantSnapshot {

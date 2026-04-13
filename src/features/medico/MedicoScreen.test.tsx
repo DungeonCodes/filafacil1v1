@@ -82,6 +82,54 @@ describe("MedicoScreen", () => {
     expect(screen.getByText(/Ultimas chamadas do consultorio/i)).toBeInTheDocument();
   });
 
+  it("renders priority medical tickets with the P marker", async () => {
+    mockedLoadDoctorSnapshot.mockResolvedValue({
+      ok: true,
+      data: {
+        currentTicket: {
+          id: 21,
+          prefix: "CG",
+          ticketNumber: 7,
+          stage: "called_doctor",
+          createdAt: "2026-03-10T10:10:00.000Z",
+          calledAt: "2026-03-10T10:20:00.000Z",
+          consultingRoom: "Consultorio 001",
+          isPriority: true
+        },
+        waitingTickets: [
+          {
+            id: 22,
+            prefix: "CG",
+            ticketNumber: 8,
+            stage: "waiting_doctor",
+            createdAt: "2026-03-10T10:21:00.000Z",
+            calledAt: null,
+            consultingRoom: null,
+            isPriority: true
+          }
+        ],
+        recentCalls: [
+          {
+            id: 101,
+            ticketId: 21,
+            stage: "called_doctor",
+            destinationLabel: "Consultorio 001",
+            calledAt: "2026-03-10T10:20:00.000Z",
+            ticketPrefix: "CG",
+            ticketNumber: 7,
+            calledBy: "Medico",
+            isPriority: true
+          }
+        ]
+      }
+    });
+
+    render(<MedicoScreen />);
+
+    expect((await screen.findAllByText("PCG-007")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("PCG-008")).length).toBeGreaterThan(0);
+  });
+
   it("calls next doctor ticket with selected options", async () => {
     render(<MedicoScreen />);
     const user = userEvent.setup();

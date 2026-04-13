@@ -128,7 +128,7 @@ export function MedicoScreen() {
     if (!snapshot.currentTicket) {
       return null;
     }
-    return formatTicket(snapshot.currentTicket.prefix, snapshot.currentTicket.ticketNumber);
+    return formatTicket(snapshot.currentTicket.prefix, snapshot.currentTicket.ticketNumber, 3, snapshot.currentTicket.isPriority === true);
   }, [snapshot.currentTicket]);
 
   const nextWaitingTicket = useMemo(() => {
@@ -136,7 +136,7 @@ export function MedicoScreen() {
     if (!firstTicket) {
       return null;
     }
-    return formatTicket(firstTicket.prefix, firstTicket.ticketNumber);
+    return formatTicket(firstTicket.prefix, firstTicket.ticketNumber, 3, firstTicket.isPriority === true);
   }, [snapshot.waitingTickets]);
 
   async function runAction(action: () => Promise<{ ok: boolean; error?: string }>, successMessage: string) {
@@ -177,7 +177,7 @@ export function MedicoScreen() {
       return;
     }
 
-    const ticketLabel = formatTicket(snapshot.currentTicket.prefix, snapshot.currentTicket.ticketNumber);
+    const ticketLabel = formatTicket(snapshot.currentTicket.prefix, snapshot.currentTicket.ticketNumber, 3, snapshot.currentTicket.isPriority === true);
     await runAction(
       async () =>
         finishDoctorTicket({
@@ -354,7 +354,7 @@ export function MedicoScreen() {
                   <ul className="mt-3 space-y-3" aria-label="Fila medica em espera">
                     {snapshot.waitingTickets.map((ticket) => (
                       <li key={ticket.id} className="flex items-center justify-between rounded-[1.35rem] border border-slate-200 bg-white px-4 py-4 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.2)]">
-                        <p className="text-2xl font-black tracking-tight text-slate-950">{formatTicket(ticket.prefix, ticket.ticketNumber)}</p>
+                        <p className="text-2xl font-black tracking-tight text-slate-950">{formatTicket(ticket.prefix, ticket.ticketNumber, 3, ticket.isPriority === true)}</p>
                         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-600">
                           Entrada {formatTime(ticket.createdAt)}
                         </span>
@@ -381,7 +381,7 @@ export function MedicoScreen() {
               <ul className="mt-4 space-y-3" aria-label="Historico recente do consultorio">
                 {snapshot.recentCalls.map((call) => (
                   <li key={call.id} className="rounded-[1.35rem] border border-slate-200 bg-white px-4 py-4 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.2)]">
-                    <p className="text-2xl font-black tracking-tight text-slate-950">{formatTicket(call.ticketPrefix, call.ticketNumber)}</p>
+                    <p className="text-2xl font-black tracking-tight text-slate-950">{formatTicket(call.ticketPrefix, call.ticketNumber, 3, call.isPriority === true)}</p>
                     <p className="mt-1 text-sm font-semibold text-slate-700">
                       {call.destinationLabel ?? selectedConsultingRoom} - Chamado as {formatTime(call.calledAt)}
                     </p>

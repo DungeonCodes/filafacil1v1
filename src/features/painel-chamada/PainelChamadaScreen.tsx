@@ -61,7 +61,7 @@ function getCallDestination(call: RecentCallItem): string {
 }
 
 function getNowCallingAnnouncement(nowCalling: NowCallingTicket): string {
-  const ticket = formatTicket(nowCalling.prefix, nowCalling.ticketNumber);
+  const ticket = formatTicket(nowCalling.prefix, nowCalling.ticketNumber, 3, nowCalling.isPriority === true);
   const destination = nowCalling.consultingRoom ? ` para ${nowCalling.consultingRoom}` : "";
   return `Nova chamada: ${ticket}${destination}.`;
 }
@@ -101,7 +101,7 @@ function buildSpokenAnnouncement(snapshot: PanelSnapshot): string | null {
     return null;
   }
 
-  const ticketLabel = formatTicket(snapshot.nowCalling.prefix, snapshot.nowCalling.ticketNumber);
+  const ticketLabel = formatTicket(snapshot.nowCalling.prefix, snapshot.nowCalling.ticketNumber, 3, snapshot.nowCalling.isPriority === true);
   const destination = getNowCallingDestination(snapshot);
   const speechTicket = buildSpeechTicket(ticketLabel);
 
@@ -221,7 +221,7 @@ export function PainelChamadaScreen() {
       return;
     }
 
-    const ticket = formatTicket(snapshot.nowCalling.prefix, snapshot.nowCalling.ticketNumber);
+    const ticket = formatTicket(snapshot.nowCalling.prefix, snapshot.nowCalling.ticketNumber, 3, snapshot.nowCalling.isPriority === true);
     const destination = getNowCallingDestination(snapshot);
     const announcementKey = `${snapshot.nowCalling.id}:${snapshot.nowCalling.calledAt ?? "na"}:${destination}`;
 
@@ -255,7 +255,7 @@ export function PainelChamadaScreen() {
     if (!snapshot.nowCalling) {
       return null;
     }
-    return formatTicket(snapshot.nowCalling.prefix, snapshot.nowCalling.ticketNumber);
+    return formatTicket(snapshot.nowCalling.prefix, snapshot.nowCalling.ticketNumber, 3, snapshot.nowCalling.isPriority === true);
   }, [snapshot.nowCalling]);
 
   return (
@@ -376,7 +376,7 @@ export function PainelChamadaScreen() {
                 <ul className="mt-4 space-y-3" aria-label="Lista de ultimas chamadas">
                   {snapshot.recentCalls.map((call) => (
                     <li key={call.id} className="rounded-[1.35rem] border border-slate-200 bg-white px-4 py-4 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.2)]">
-                      <p className="text-2xl font-black tracking-tight text-slate-950">{formatTicket(call.ticketPrefix, call.ticketNumber)}</p>
+                      <p className="text-2xl font-black tracking-tight text-slate-950">{formatTicket(call.ticketPrefix, call.ticketNumber, 3, call.isPriority === true)}</p>
                       <p className="mt-1 text-sm font-semibold text-slate-700">
                         {getStageLabel(call.stage)} - {getCallDestination(call)}
                       </p>
@@ -404,7 +404,7 @@ export function PainelChamadaScreen() {
                 <ul className="mt-4 space-y-3" aria-label="Lista de proximas senhas em espera">
                   {snapshot.waitingTickets.map((ticket) => (
                     <li key={ticket.id} className="flex items-center justify-between rounded-[1.35rem] border border-slate-200 bg-white px-4 py-4 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.2)]">
-                      <p className="text-2xl font-black tracking-tight text-slate-950">{formatTicket(ticket.prefix, ticket.ticketNumber)}</p>
+                      <p className="text-2xl font-black tracking-tight text-slate-950">{formatTicket(ticket.prefix, ticket.ticketNumber, 3, ticket.isPriority === true)}</p>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-700">
                         {getStageLabel(ticket.stage)}
                       </span>

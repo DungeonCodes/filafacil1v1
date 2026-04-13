@@ -72,6 +72,41 @@ describe("AtendenteScreen", () => {
     expect(screen.getByText("CG-002")).toBeInTheDocument();
   });
 
+  it("renders the priority marker with P when a priority ticket is present", async () => {
+    mockedLoadAttendantSnapshot.mockResolvedValue({
+      ok: true,
+      data: {
+        currentTicket: {
+          id: 10,
+          prefix: "CG",
+          ticketNumber: 1,
+          stage: "called_attendant",
+          createdAt: "2026-03-10T10:00:00.000Z",
+          calledAt: "2026-03-10T10:05:00.000Z",
+          consultingRoom: null,
+          isPriority: true
+        },
+        waitingTickets: [
+          {
+            id: 11,
+            prefix: "CG",
+            ticketNumber: 2,
+            stage: "waiting_attendant",
+            createdAt: "2026-03-10T10:06:00.000Z",
+            calledAt: null,
+            consultingRoom: null,
+            isPriority: true
+          }
+        ]
+      }
+    });
+
+    render(<AtendenteScreen />);
+
+    expect(await screen.findByText("PCG-001")).toBeInTheDocument();
+    expect(screen.getByText("PCG-002")).toBeInTheDocument();
+  });
+
   it("calls next ticket using selected queue prefix", async () => {
     mockedLoadAttendantSnapshot
       .mockResolvedValueOnce({
