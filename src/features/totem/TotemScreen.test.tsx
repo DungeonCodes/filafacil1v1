@@ -15,6 +15,7 @@ const mockedCreateNextTicket = vi.mocked(createNextTicket);
 describe("TotemScreen", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
   });
 
   it("requires choosing normal or priority before showing queue cards", async () => {
@@ -66,6 +67,52 @@ describe("TotemScreen", () => {
     render(<TotemScreen />);
     const user = userEvent.setup();
 
+    await user.click(await screen.findByRole("button", { name: "Selecionar atendimento prioritario" }));
+    await user.click(await screen.findByRole("button", { name: "Gerar senha prioritaria para Clinico Geral" }));
+
+    expect(mockedCreateNextTicket).toHaveBeenCalledWith("CG", true);
+    expect(await screen.findByRole("status")).toHaveTextContent("PCG-001");
+  });
+
+  it("stores the Modo TEA preference locally and keeps the visual journey summary visible", async () => {
+    mockedLoadQueues.mockResolvedValue({
+      ok: true,
+      data: [{ id: 1, name: "Clinico Geral", prefix: "CG" }]
+    });
+    mockedCreateNextTicket.mockResolvedValue({
+      ok: false,
+      error: "Not used in this test."
+    });
+
+    render(<TotemScreen />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Ativar modo TEA" }));
+
+    expect(await screen.findByRole("button", { name: "Desativar modo TEA" })).toBeInTheDocument();
+    expect(screen.getByText("Passo atual")).toBeInTheDocument();
+    expect(window.localStorage.getItem("filafacil:totem-tea-mode")).toBe("enabled");
+  });
+
+  it("keeps the ticket generation contract unchanged when Modo TEA is active", async () => {
+    mockedLoadQueues.mockResolvedValue({
+      ok: true,
+      data: [{ id: 1, name: "Clinico Geral", prefix: "CG" }]
+    });
+    mockedCreateNextTicket.mockResolvedValue({
+      ok: true,
+      data: {
+        prefix: "CG",
+        ticketNumber: 1,
+        currentStage: "waiting_attendant",
+        isPriority: true
+      }
+    });
+
+    render(<TotemScreen />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Ativar modo TEA" }));
     await user.click(await screen.findByRole("button", { name: "Selecionar atendimento prioritario" }));
     await user.click(await screen.findByRole("button", { name: "Gerar senha prioritaria para Clinico Geral" }));
 
