@@ -63,6 +63,15 @@ type QueueVisualConfig = {
   iconTone: string;
 };
 
+type TotemJourneyStep = {
+  index: 1 | 2 | 3;
+  label: string;
+  title: string;
+  description: string;
+};
+
+const TOTEM_TEA_MODE_STORAGE_KEY = "filafacil:totem-tea-mode";
+
 const DIGIT_WORDS: Record<string, string> = {
   "0": "zero",
   "1": "um",
@@ -75,6 +84,30 @@ const DIGIT_WORDS: Record<string, string> = {
   "8": "oito",
   "9": "nove"
 };
+
+function readStoredTeaModePreference(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    return window.localStorage.getItem(TOTEM_TEA_MODE_STORAGE_KEY) === "enabled";
+  } catch {
+    return false;
+  }
+}
+
+function persistTeaModePreference(value: boolean) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(TOTEM_TEA_MODE_STORAGE_KEY, value ? "enabled" : "disabled");
+  } catch {
+    // Ignore storage errors to avoid blocking the interface.
+  }
+}
 
 function normalizeVoiceInput(value: string): string {
   return value
@@ -233,6 +266,16 @@ function VoiceIcon({ className }: { className?: string }) {
   );
 }
 
+function FocusModeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 9.2C6.5 7.7 9 6.9 12 6.9s5.5.8 7.5 2.3" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 14.8c2 1.5 4.5 2.3 7.5 2.3s5.5-.8 7.5-2.3" />
+      <circle cx="12" cy="12" r="2.25" />
+    </svg>
+  );
+}
+
 function TicketRequestIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
@@ -351,11 +394,39 @@ function getQueueVisualConfig(queue: QueueOption): QueueVisualConfig {
   };
 }
 
+function getTotemJourneyStep(hasIssuedTicket: boolean, selectedServiceMode: ServiceMode | null): TotemJourneyStep {
+  if (hasIssuedTicket) {
+    return {
+      index: 3,
+      label: "Passo 3",
+      title: "Senha gerada",
+      description: "Leia sua senha com calma e aguarde a chamada."
+    };
+  }
+
+  if (selectedServiceMode) {
+    return {
+      index: 2,
+      label: "Passo 2",
+      title: "Escolha o servico",
+      description: "Agora toque no servico desejado para emitir a senha."
+    };
+  }
+
+  return {
+    index: 1,
+    label: "Passo 1",
+    title: "Escolha o tipo",
+    description: "Primeiro escolha entre atendimento normal e prioritario."
+  };
+}
+
 export function TotemScreen() {
   const { isHighContrast, toggleHighContrast } = useHighContrast();
   const [queues, setQueues] = useState<QueueOption[]>([]);
   const [isLoadingQueues, setIsLoadingQueues] = useState(true);
   const [queueError, setQueueError] = useState<string | null>(null);
+  const [isTeaModeActive, setIsTeaModeActive] = useState(false);
   const [selectedServiceMode, setSelectedServiceMode] = useState<ServiceMode | null>(null);
   const [issuingPrefix, setIssuingPrefix] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
@@ -417,6 +488,14 @@ export function TotemScreen() {
     }
   }, []);
 
+  useEffect(() => {
+    setIsTeaModeActive(readStoredTeaModePreference());
+  }, []);
+
+  useEffect(() => {
+    persistTeaModePreference(isTeaModeActive);
+  }, [isTeaModeActive]);
+
   const liveMessage = useMemo(() => {
     if (!feedback) {
       return "";
@@ -447,6 +526,21 @@ export function TotemScreen() {
     () => (selectedServiceMode ? getServiceModeLabel(selectedServiceMode) : null),
     [selectedServiceMode]
   );
+
+  const hasIssuedTicket = feedback?.kind === "success" && Boolean(lastIssuedTicket);
+
+  const currentJourneyStep = useMemo(
+    () => getTotemJourneyStep(hasIssuedTicket, selectedServiceMode),
+    [hasIssuedTicket, selectedServiceMode]
+  );
+
+  const currentJourneyDescription = useMemo(() => {
+    if (!isTeaModeActive) {
+      return "Escolha o tipo e depois toque no servico.";
+    }
+
+    return currentJourneyStep.description;
+  }, [currentJourneyStep.description, isTeaModeActive]);
 
   const voiceStepSummary = useMemo(() => getVoiceStepLabel(voiceStep), [voiceStep]);
 
@@ -918,10 +1012,12 @@ export function TotemScreen() {
       className={`relative overflow-hidden ${
         isHighContrast
           ? "bg-black"
-          : "bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.22),_transparent_20%),radial-gradient(circle_at_bottom_left,_rgba(37,99,235,0.20),_transparent_24%),linear-gradient(180deg,_#f8fbff_0%,_#eef4fb_52%,_#e7eff8_100%)]"
+          : isTeaModeActive
+            ? "bg-[linear-gradient(180deg,_#f5f7fb_0%,_#eef2f7_100%)]"
+            : "bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.22),_transparent_20%),radial-gradient(circle_at_bottom_left,_rgba(37,99,235,0.20),_transparent_24%),linear-gradient(180deg,_#f8fbff_0%,_#eef4fb_52%,_#e7eff8_100%)]"
       }`}
     >
-      {!isHighContrast && (
+      {!isHighContrast && !isTeaModeActive && (
         <>
           <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle,_rgba(255,255,255,0.92)_0%,_rgba(255,255,255,0)_72%)]" />
           <div className="pointer-events-none absolute right-[-8rem] top-20 h-72 w-72 rounded-full bg-sky-300/25 blur-3xl" />
@@ -936,10 +1032,12 @@ export function TotemScreen() {
           className={`relative overflow-hidden rounded-[2rem] px-4 py-4 sm:px-6 sm:py-5 ${
             isHighContrast
               ? "border-2 border-white bg-black text-white shadow-none"
-              : "border border-white/70 bg-white/88 text-slate-950 shadow-[0_24px_70px_-38px_rgba(15,23,42,0.22)] backdrop-blur-xl"
+              : isTeaModeActive
+                ? "border border-slate-200 bg-slate-50/95 text-slate-950 shadow-[0_18px_48px_-38px_rgba(15,23,42,0.16)]"
+                : "border border-white/70 bg-white/88 text-slate-950 shadow-[0_24px_70px_-38px_rgba(15,23,42,0.22)] backdrop-blur-xl"
           }`}
         >
-          {!isHighContrast && (
+          {!isHighContrast && !isTeaModeActive && (
             <>
               <div className="pointer-events-none absolute right-0 top-0 h-24 w-24 rounded-full bg-sky-400/15 blur-2xl" />
               <div className="pointer-events-none absolute bottom-[-2rem] left-[-1rem] h-20 w-20 rounded-full bg-blue-500/10 blur-2xl" />
@@ -952,14 +1050,14 @@ export function TotemScreen() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] ${
-                      isHighContrast ? "bg-white text-black" : "bg-sky-100 text-sky-700"
+                      isHighContrast ? "bg-white text-black" : isTeaModeActive ? "bg-slate-200 text-slate-700" : "bg-sky-100 text-sky-700"
                     }`}
                   >
                     Totem
                   </span>
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] ${
-                      isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-600"
+                      isHighContrast ? "border border-white text-white" : isTeaModeActive ? "bg-white text-slate-600" : "bg-slate-100 text-slate-600"
                     }`}
                   >
                     Autoatendimento
@@ -967,10 +1065,10 @@ export function TotemScreen() {
                 </div>
 
                 <h1 className={`mt-3 text-3xl font-black tracking-tight sm:text-[2.55rem] ${isHighContrast ? "text-white" : "text-slate-950"}`}>
-                  Escolha seu atendimento.
+                  {isTeaModeActive ? "Um passo por vez." : "Escolha seu atendimento."}
                 </h1>
                 <p className={`mt-2 text-sm font-medium sm:text-base ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}>
-                  Escolha o tipo e depois toque no servico.
+                  {currentJourneyDescription}
                 </p>
               </div>
 
@@ -978,7 +1076,9 @@ export function TotemScreen() {
                 className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.18em] ${
                   isHighContrast
                     ? "border border-white text-white"
-                    : "border border-white/80 bg-white text-slate-600 shadow-[0_12px_30px_-26px_rgba(15,23,42,0.28)]"
+                    : isTeaModeActive
+                      ? "border border-slate-200 bg-white text-slate-600"
+                      : "border border-white/80 bg-white text-slate-600 shadow-[0_12px_30px_-26px_rgba(15,23,42,0.28)]"
                 }`}
               >
                 <StatusSparkIcon className="h-4 w-4" />
@@ -986,21 +1086,25 @@ export function TotemScreen() {
               </span>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-3 gap-2.5 sm:gap-3">
               <button
                 type="button"
                 onClick={isVoiceModeActive ? handleDeactivateVoiceMode : handleActivateVoiceMode}
                 disabled={isLoadingQueues || Boolean(issuingPrefix)}
                 aria-pressed={isVoiceModeActive}
                 aria-label={isVoiceModeActive ? "Desativar modo por voz guiado" : "Ativar modo por voz guiado"}
-                className={`inline-flex min-h-[4rem] items-center justify-between gap-2 rounded-[1.35rem] border px-3.5 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 disabled:cursor-not-allowed ${
+                className={`inline-flex min-h-[5.35rem] flex-col items-start justify-between rounded-[1.35rem] border px-3 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 disabled:cursor-not-allowed ${
                   isHighContrast
                     ? isVoiceModeActive
                       ? "border-white bg-yellow-300 text-black hover:bg-yellow-200 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
                       : "border-white bg-black text-white hover:bg-slate-900 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
                     : isVoiceModeActive
-                      ? "border-emerald-300 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-[0_20px_42px_-24px_rgba(16,185,129,0.7)] hover:from-emerald-600 hover:to-teal-600 disabled:border-slate-200 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-500 disabled:shadow-none"
-                      : "border-sky-200 bg-white text-slate-900 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.28)] hover:border-sky-300 hover:bg-sky-50 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:shadow-none"
+                      ? isTeaModeActive
+                        ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500"
+                        : "border-emerald-300 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-[0_20px_42px_-24px_rgba(16,185,129,0.7)] hover:from-emerald-600 hover:to-teal-600 disabled:border-slate-200 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-500 disabled:shadow-none"
+                      : isTeaModeActive
+                        ? "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500"
+                        : "border-sky-200 bg-white text-slate-900 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.28)] hover:border-sky-300 hover:bg-sky-50 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 disabled:shadow-none"
                 }`}
               >
                 <span className="flex min-w-0 items-center gap-2.5">
@@ -1012,13 +1116,15 @@ export function TotemScreen() {
                           : "border border-white text-white"
                         : isVoiceModeActive
                           ? "bg-white/15 text-white"
-                          : "bg-sky-100 text-sky-700"
+                          : isTeaModeActive
+                            ? "bg-slate-100 text-slate-700"
+                            : "bg-sky-100 text-sky-700"
                     }`}
                   >
                     <VoiceIcon className="h-5 w-5" />
                   </span>
                   <span className="min-w-0 text-left">
-                    <span className="block truncate">Voz</span>
+                    <span className="block leading-tight">Voz</span>
                     <span
                       className={`block text-[11px] font-bold uppercase tracking-[0.18em] ${
                         isHighContrast
@@ -1054,22 +1160,24 @@ export function TotemScreen() {
                 onClick={toggleHighContrast}
                 aria-pressed={isHighContrast}
                 aria-label={isHighContrast ? "Desativar modo de alto contraste" : "Ativar modo de alto contraste"}
-                className={`inline-flex min-h-[4rem] items-center justify-between gap-2 rounded-[1.35rem] border px-3.5 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 ${
+                className={`inline-flex min-h-[5.35rem] flex-col items-start justify-between rounded-[1.35rem] border px-3 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 ${
                   isHighContrast
                     ? "border-white bg-yellow-300 text-black hover:bg-yellow-200"
-                    : "border-amber-200 bg-white text-slate-900 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.28)] hover:border-amber-300 hover:bg-amber-50/80"
+                    : isTeaModeActive
+                      ? "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50"
+                      : "border-amber-200 bg-white text-slate-900 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.28)] hover:border-amber-300 hover:bg-amber-50/80"
                 }`}
               >
                 <span className="flex min-w-0 items-center gap-2.5">
                   <span
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                      isHighContrast ? "bg-black text-yellow-300" : "bg-amber-100 text-amber-700"
+                      isHighContrast ? "bg-black text-yellow-300" : isTeaModeActive ? "bg-slate-100 text-slate-700" : "bg-amber-100 text-amber-700"
                     }`}
                   >
                     <ContrastIcon className="h-5 w-5" />
                   </span>
                   <span className="min-w-0 text-left">
-                    <span className="block truncate">Contraste</span>
+                    <span className="block leading-tight">Contraste</span>
                     <span className={`block text-[11px] font-bold uppercase tracking-[0.18em] ${isHighContrast ? "text-black/80" : "text-slate-500"}`}>
                       Tela
                     </span>
@@ -1083,13 +1191,133 @@ export function TotemScreen() {
                   {isHighContrast ? "On" : "Off"}
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setIsTeaModeActive((currentValue) => !currentValue)}
+                aria-pressed={isTeaModeActive}
+                aria-label={isTeaModeActive ? "Desativar modo TEA" : "Ativar modo TEA"}
+                className={`inline-flex min-h-[5.35rem] flex-col items-start justify-between rounded-[1.35rem] border px-3 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 ${
+                  isHighContrast
+                    ? isTeaModeActive
+                      ? "border-white bg-yellow-300 text-black hover:bg-yellow-200"
+                      : "border-white bg-black text-white hover:bg-slate-900"
+                    : isTeaModeActive
+                      ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
+                      : "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
+                      isHighContrast
+                        ? isTeaModeActive
+                          ? "bg-black text-yellow-300"
+                          : "border border-white text-white"
+                        : isTeaModeActive
+                          ? "bg-white/15 text-white"
+                          : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    <FocusModeIcon className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0 text-left">
+                    <span className="block leading-tight">Modo TEA</span>
+                    <span
+                      className={`block text-[11px] font-bold uppercase tracking-[0.18em] ${
+                        isHighContrast
+                          ? isTeaModeActive
+                            ? "text-black/80"
+                            : "text-slate-300"
+                          : isTeaModeActive
+                            ? "text-white/75"
+                            : "text-slate-500"
+                      }`}
+                    >
+                      Calmo
+                    </span>
+                  </span>
+                </span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] ${
+                    isHighContrast
+                      ? isTeaModeActive
+                        ? "bg-black text-yellow-300"
+                        : "border border-white text-white"
+                      : isTeaModeActive
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {isTeaModeActive ? "On" : "Off"}
+                </span>
+              </button>
             </div>
+
+            {isTeaModeActive && (
+              <div
+                className={`mt-4 rounded-[1.6rem] border px-4 py-4 ${
+                  isHighContrast ? "border-white bg-black text-white" : "border-slate-200 bg-white text-slate-900"
+                }`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className={`text-[11px] font-black uppercase tracking-[0.22em] ${isHighContrast ? "text-yellow-300" : "text-slate-500"}`}>
+                      Passo atual
+                    </p>
+                    <p className="mt-2 text-lg font-black tracking-tight sm:text-xl">{currentJourneyStep.title}</p>
+                    <p className={`mt-1 text-sm font-medium ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}>
+                      {currentJourneyStep.description}
+                    </p>
+                  </div>
+
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ${
+                      isHighContrast ? "bg-yellow-300 text-black" : "bg-slate-900 text-white"
+                    }`}
+                  >
+                    {currentJourneyStep.label}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                  {[
+                    { index: 1, label: "Tipo" },
+                    { index: 2, label: "Servico" },
+                    { index: 3, label: "Senha" }
+                  ].map((step) => {
+                    const isActiveStep = currentJourneyStep.index === step.index;
+                    const isCompletedStep = currentJourneyStep.index > step.index;
+
+                    return (
+                      <div
+                        key={step.index}
+                        className={`rounded-[1.1rem] border px-3 py-3 text-sm ${
+                          isHighContrast
+                            ? isActiveStep
+                              ? "border-white bg-yellow-300 text-black"
+                              : "border-white bg-black text-white"
+                            : isActiveStep
+                              ? "border-slate-900 bg-slate-900 text-white"
+                              : isCompletedStep
+                                ? "border-slate-300 bg-slate-100 text-slate-700"
+                                : "border-slate-200 bg-slate-50 text-slate-500"
+                        }`}
+                      >
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em]">Passo {step.index}</p>
+                        <p className="mt-1 font-bold">{step.label}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {(selectedVoiceQueue || lastHeardCommand || voiceStep !== "idle") && (
               <div className="mt-3 flex flex-wrap gap-2">
                 <span
                   className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ${
-                    isHighContrast ? "border border-white text-white" : voiceStatusBadge.className
+                    isHighContrast ? "border border-white text-white" : isTeaModeActive ? "bg-slate-900 text-white" : voiceStatusBadge.className
                   }`}
                 >
                   <VoiceIcon className="h-4 w-4" />
@@ -1099,7 +1327,7 @@ export function TotemScreen() {
                 {selectedServiceMode && (
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                      isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-700"
+                      isHighContrast ? "border border-white text-white" : isTeaModeActive ? "border border-slate-300 bg-white text-slate-700" : "bg-slate-100 text-slate-700"
                     }`}
                   >
                     Tipo: {getServiceModeShortLabel(selectedServiceMode)}
@@ -1109,14 +1337,14 @@ export function TotemScreen() {
                 {selectedVoiceQueue && (
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                      isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-700"
+                      isHighContrast ? "border border-white text-white" : isTeaModeActive ? "border border-slate-300 bg-white text-slate-700" : "bg-slate-100 text-slate-700"
                     }`}
                   >
                     Opcao: {selectedVoiceQueue.name}
                   </span>
                 )}
 
-                {lastHeardCommand && (
+                {lastHeardCommand && !isTeaModeActive && (
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
                       isHighContrast ? "border border-white text-white" : "bg-slate-100 text-slate-700"
@@ -1134,14 +1362,22 @@ export function TotemScreen() {
           className={`mt-4 rounded-[2rem] px-4 py-4 sm:px-6 sm:py-5 ${
             isHighContrast
               ? "border-2 border-white bg-black text-white shadow-none"
-              : "border border-white/75 bg-white/88 text-slate-950 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.2)] backdrop-blur-xl"
+              : isTeaModeActive
+                ? currentJourneyStep.index === 1
+                  ? "border-2 border-slate-900 bg-white text-slate-950"
+                  : "border border-slate-200 bg-slate-50/92 text-slate-950"
+                : "border border-white/75 bg-white/88 text-slate-950 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.2)] backdrop-blur-xl"
           }`}
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <span
                 className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] ${
-                  isHighContrast ? "bg-white text-black" : "bg-slate-100 text-slate-600"
+                  isHighContrast
+                    ? "bg-white text-black"
+                    : isTeaModeActive && currentJourneyStep.index === 1
+                      ? "bg-slate-900 text-white"
+                      : "bg-slate-100 text-slate-600"
                 }`}
               >
                 Passo 1
@@ -1150,14 +1386,14 @@ export function TotemScreen() {
                 Normal ou prioritario?
               </h2>
               <p className={`mt-1 text-sm font-medium ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}>
-                Escolha uma opcao para liberar as filas.
+                {isTeaModeActive ? "Escolha primeiro o tipo de atendimento." : "Escolha uma opcao para liberar as filas."}
               </p>
             </div>
 
             {selectedServiceModeLabel && (
               <span
                 className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ${
-                  isHighContrast ? "border border-white text-white" : "bg-sky-100 text-sky-700"
+                  isHighContrast ? "border border-white text-white" : isTeaModeActive ? "bg-slate-100 text-slate-700" : "bg-sky-100 text-sky-700"
                 }`}
               >
                 {selectedServiceModeLabel}
@@ -1177,8 +1413,12 @@ export function TotemScreen() {
                     ? "border-white bg-yellow-300 text-black"
                     : "border-white bg-black text-white hover:bg-slate-950"
                   : selectedServiceMode === "normal"
-                    ? "border-sky-300 bg-gradient-to-br from-sky-600 via-blue-600 to-indigo-700 text-white shadow-[0_24px_55px_-28px_rgba(37,99,235,0.55)]"
-                    : "border-slate-200 bg-white text-slate-900 shadow-[0_18px_45px_-32px_rgba(15,23,42,0.16)] hover:border-sky-200 hover:bg-sky-50/70"
+                    ? isTeaModeActive
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-sky-300 bg-gradient-to-br from-sky-600 via-blue-600 to-indigo-700 text-white shadow-[0_24px_55px_-28px_rgba(37,99,235,0.55)]"
+                    : isTeaModeActive
+                      ? "border-slate-300 bg-white text-slate-900 hover:border-slate-400 hover:bg-slate-50"
+                      : "border-slate-200 bg-white text-slate-900 shadow-[0_18px_45px_-32px_rgba(15,23,42,0.16)] hover:border-sky-200 hover:bg-sky-50/70"
               }`}
             >
               <span
@@ -1222,11 +1462,15 @@ export function TotemScreen() {
                     ? "border-white bg-yellow-300 text-black"
                     : "border-white bg-black text-white hover:bg-slate-950"
                   : selectedServiceMode === "priority"
-                    ? "border-sky-300 bg-gradient-to-br from-sky-600 via-blue-600 to-indigo-700 text-white shadow-[0_26px_60px_-26px_rgba(37,99,235,0.62)]"
-                    : "border-sky-200 bg-gradient-to-br from-sky-50 via-white to-blue-50 text-slate-950 shadow-[0_20px_52px_-34px_rgba(37,99,235,0.22)] hover:border-sky-300 hover:from-sky-100 hover:to-blue-100"
+                    ? isTeaModeActive
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-sky-300 bg-gradient-to-br from-sky-600 via-blue-600 to-indigo-700 text-white shadow-[0_26px_60px_-26px_rgba(37,99,235,0.62)]"
+                    : isTeaModeActive
+                      ? "border-slate-300 bg-white text-slate-900 hover:border-slate-400 hover:bg-slate-50"
+                      : "border-sky-200 bg-gradient-to-br from-sky-50 via-white to-blue-50 text-slate-950 shadow-[0_20px_52px_-34px_rgba(37,99,235,0.22)] hover:border-sky-300 hover:from-sky-100 hover:to-blue-100"
               }`}
             >
-              {!isHighContrast && (
+              {!isHighContrast && !isTeaModeActive && (
                 <div className="pointer-events-none absolute inset-x-6 top-4 h-16 rounded-full bg-gradient-to-r from-white/35 via-sky-200/35 to-blue-200/35 blur-2xl" />
               )}
 
@@ -1272,10 +1516,12 @@ export function TotemScreen() {
             className={`relative mt-6 overflow-hidden rounded-[2.25rem] ${
               isHighContrast
                 ? "border-2 border-white bg-black text-white shadow-none"
-                : "bg-gradient-to-br from-sky-600 via-blue-600 to-indigo-700 text-white shadow-[0_30px_80px_-34px_rgba(37,99,235,0.55)]"
+                : isTeaModeActive
+                  ? "border border-slate-300 bg-slate-900 text-white shadow-[0_22px_60px_-38px_rgba(15,23,42,0.42)]"
+                  : "bg-gradient-to-br from-sky-600 via-blue-600 to-indigo-700 text-white shadow-[0_30px_80px_-34px_rgba(37,99,235,0.55)]"
             }`}
           >
-            {!isHighContrast && (
+            {!isHighContrast && !isTeaModeActive && (
               <>
                 <div className="pointer-events-none absolute inset-y-0 right-[-3rem] w-48 rounded-full bg-white/10 blur-3xl" />
                 <div className="pointer-events-none absolute bottom-[-4rem] left-[-4rem] h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl" />
@@ -1287,7 +1533,7 @@ export function TotemScreen() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.24em] ${
-                      isHighContrast ? "bg-yellow-300 text-black" : "bg-white/15 text-sky-50"
+                      isHighContrast ? "bg-yellow-300 text-black" : isTeaModeActive ? "bg-white text-slate-900" : "bg-white/15 text-sky-50"
                     }`}
                   >
                     Senha gerada
@@ -1304,7 +1550,7 @@ export function TotemScreen() {
                   {issuedTicketParts?.prefix && (
                     <span
                       className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.24em] ${
-                        isHighContrast ? "border border-white text-white" : "bg-white/10 text-sky-50"
+                        isHighContrast ? "border border-white text-white" : isTeaModeActive ? "border border-white/20 text-slate-100" : "bg-white/10 text-sky-50"
                       }`}
                     >
                       Prefixo {issuedTicketParts.prefix}
@@ -1313,17 +1559,19 @@ export function TotemScreen() {
                 </div>
 
                 <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Sua senha esta pronta.</h2>
-                <p className={`mt-3 max-w-md text-base leading-7 ${isHighContrast ? "text-slate-100" : "text-blue-50"}`}>
-                  A confirmacao fica em destaque para leitura rapida. Guarde o numero e acompanhe a chamada no painel.
+                <p className={`mt-3 max-w-md text-base leading-7 ${isHighContrast ? "text-slate-100" : isTeaModeActive ? "text-slate-200" : "text-blue-50"}`}>
+                  {isTeaModeActive
+                    ? "Guarde o numero e aguarde a chamada no painel."
+                    : "A confirmacao fica em destaque para leitura rapida. Guarde o numero e acompanhe a chamada no painel."}
                 </p>
               </div>
 
               <div
                 className={`rounded-[1.9rem] px-5 py-6 text-center sm:px-7 sm:py-8 ${
-                  isHighContrast ? "border-2 border-white bg-black text-white" : "bg-white/12 backdrop-blur-md"
+                  isHighContrast ? "border-2 border-white bg-black text-white" : isTeaModeActive ? "border border-white/15 bg-black/20" : "bg-white/12 backdrop-blur-md"
                 }`}
               >
-                <p className={`text-sm font-black uppercase tracking-[0.22em] ${isHighContrast ? "text-yellow-300" : "text-sky-100"}`}>
+                <p className={`text-sm font-black uppercase tracking-[0.22em] ${isHighContrast ? "text-yellow-300" : isTeaModeActive ? "text-slate-200" : "text-sky-100"}`}>
                   Guarde esta senha
                 </p>
                 <p className="mt-5 text-center font-black leading-none tracking-[-0.08em] text-[clamp(3.8rem,18vw,7.2rem)]">
@@ -1337,7 +1585,7 @@ export function TotemScreen() {
                     lastIssuedTicket
                   )}
                 </p>
-                <p className={`mt-5 text-base font-semibold leading-7 ${isHighContrast ? "text-slate-100" : "text-blue-50"}`}>
+                <p className={`mt-5 text-base font-semibold leading-7 ${isHighContrast ? "text-slate-100" : isTeaModeActive ? "text-slate-100" : "text-blue-50"}`}>
                   {feedback.message}
                 </p>
               </div>
@@ -1351,7 +1599,9 @@ export function TotemScreen() {
             className={`mt-6 rounded-[2rem] px-5 py-5 sm:px-6 ${
               isHighContrast
                 ? "border-2 border-white bg-black text-white shadow-none"
-                : "border border-rose-200 bg-rose-50 text-rose-900 shadow-[0_20px_55px_-38px_rgba(225,29,72,0.4)]"
+                : isTeaModeActive
+                  ? "border border-rose-200 bg-white text-rose-900"
+                  : "border border-rose-200 bg-rose-50 text-rose-900 shadow-[0_20px_55px_-38px_rgba(225,29,72,0.4)]"
             }`}
           >
             <p className={`text-sm font-black uppercase tracking-[0.22em] ${isHighContrast ? "text-yellow-300" : "text-rose-700"}`}>
@@ -1367,14 +1617,22 @@ export function TotemScreen() {
               className={`mb-4 rounded-[2rem] px-4 py-4 sm:px-6 ${
                 isHighContrast
                   ? "border-2 border-white bg-black text-white shadow-none"
-                  : "border border-white/75 bg-white/88 text-slate-950 shadow-[0_22px_65px_-42px_rgba(15,23,42,0.18)] backdrop-blur-xl"
+                  : isTeaModeActive
+                    ? currentJourneyStep.index === 2
+                      ? "border-2 border-slate-900 bg-white text-slate-950"
+                      : "border border-slate-200 bg-slate-50/92 text-slate-950"
+                    : "border border-white/75 bg-white/88 text-slate-950 shadow-[0_22px_65px_-42px_rgba(15,23,42,0.18)] backdrop-blur-xl"
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] ${
-                      isHighContrast ? "bg-white text-black" : "bg-slate-100 text-slate-600"
+                      isHighContrast
+                        ? "bg-white text-black"
+                        : isTeaModeActive && currentJourneyStep.index === 2
+                          ? "bg-slate-900 text-white"
+                          : "bg-slate-100 text-slate-600"
                     }`}
                   >
                     Passo 2
@@ -1382,12 +1640,19 @@ export function TotemScreen() {
                   <h2 className={`mt-3 text-2xl font-black tracking-tight sm:text-[2rem] ${isHighContrast ? "text-white" : "text-slate-950"}`}>
                     Escolha o servico.
                   </h2>
+                  {isTeaModeActive && (
+                    <p className={`mt-1 text-sm font-medium ${isHighContrast ? "text-slate-100" : "text-slate-600"}`}>
+                      Agora toque em um servico para emitir a senha.
+                    </p>
+                  )}
                 </div>
 
                 <span
                   className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ${
                     isHighContrast
                       ? "border border-white text-white"
+                      : isTeaModeActive
+                        ? "bg-slate-100 text-slate-700"
                       : selectedServiceMode === "priority"
                         ? "bg-sky-100 text-sky-700"
                         : "bg-slate-100 text-slate-600"
@@ -1403,7 +1668,9 @@ export function TotemScreen() {
                 className={`rounded-[2rem] px-5 py-8 text-center text-xl font-semibold ${
                   isHighContrast
                     ? "border-2 border-white bg-black text-white shadow-none"
-                    : "border border-white/70 bg-white/86 text-slate-700 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.18)]"
+                    : isTeaModeActive
+                      ? "border border-slate-200 bg-white text-slate-700"
+                      : "border border-white/70 bg-white/86 text-slate-700 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.18)]"
                 }`}
               >
                 Carregando opcoes de atendimento...
@@ -1415,7 +1682,9 @@ export function TotemScreen() {
                 className={`rounded-[2rem] px-5 py-6 text-center ${
                   isHighContrast
                     ? "border-2 border-white bg-black text-white shadow-none"
-                    : "border border-amber-200 bg-amber-50 text-amber-950 shadow-[0_20px_60px_-40px_rgba(245,158,11,0.25)]"
+                    : isTeaModeActive
+                      ? "border border-amber-200 bg-white text-amber-950"
+                      : "border border-amber-200 bg-amber-50 text-amber-950 shadow-[0_20px_60px_-40px_rgba(245,158,11,0.25)]"
                 }`}
               >
                 <p className={`text-lg font-semibold ${isHighContrast ? "text-white" : "text-amber-900"}`}>{queueError}</p>
@@ -1424,6 +1693,8 @@ export function TotemScreen() {
                   className={`mt-5 inline-flex min-h-14 items-center justify-center rounded-[1.35rem] border px-6 text-lg font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 ${
                     isHighContrast
                       ? "border-white bg-yellow-300 text-black hover:bg-yellow-200"
+                      : isTeaModeActive
+                        ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
                       : "border-sky-200 bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-[0_18px_45px_-24px_rgba(37,99,235,0.55)] hover:from-sky-700 hover:to-blue-700"
                   }`}
                   onClick={() => setReloadVersion((currentValue) => currentValue + 1)}
@@ -1434,7 +1705,7 @@ export function TotemScreen() {
             )}
 
             {!isLoadingQueues && !queueError && queues.length > 0 && (
-              <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Filas disponiveis para emissao de senha">
+              <ul className={`grid ${isTeaModeActive ? "gap-5" : "gap-4"} md:grid-cols-2 xl:grid-cols-3`} aria-label="Filas disponiveis para emissao de senha">
                 {queues.map((queue) => {
                   const queueVisual = getQueueVisualConfig(queue);
                   const isIssuingCurrentQueue = issuingPrefix === queue.prefix;
@@ -1453,20 +1724,24 @@ export function TotemScreen() {
                         className={`group relative flex min-h-[12.75rem] w-full flex-col overflow-hidden rounded-[2rem] px-6 py-5 text-center transition duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none ${
                           isHighContrast
                             ? "border-2 border-white bg-black text-white hover:bg-slate-950 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
-                            : "border border-white/80 bg-gradient-to-b from-white via-white to-sky-50/90 text-slate-950 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.22)] hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_26px_80px_-38px_rgba(37,99,235,0.24)] disabled:border-slate-200 disabled:from-slate-100 disabled:to-slate-200 disabled:text-slate-500"
+                            : isTeaModeActive
+                              ? "border border-slate-200 bg-white text-slate-950 hover:border-slate-400 hover:bg-slate-50 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500"
+                              : "border border-white/80 bg-gradient-to-b from-white via-white to-sky-50/90 text-slate-950 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.22)] hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_26px_80px_-38px_rgba(37,99,235,0.24)] disabled:border-slate-200 disabled:from-slate-100 disabled:to-slate-200 disabled:text-slate-500"
                         }`}
                         aria-label={queueActionLabel}
                         aria-describedby={queueAssistiveTextId}
                         onClick={() => void handleIssueTicket(queue)}
                         disabled={Boolean(issuingPrefix)}
                       >
-                        <span
-                          className={`absolute inset-x-0 top-0 h-1.5 ${
-                            isHighContrast ? "bg-yellow-300" : `bg-gradient-to-r ${queueVisual.accentGradient}`
-                          }`}
-                        />
+                        {!isTeaModeActive && (
+                          <span
+                            className={`absolute inset-x-0 top-0 h-1.5 ${
+                              isHighContrast ? "bg-yellow-300" : `bg-gradient-to-r ${queueVisual.accentGradient}`
+                            }`}
+                          />
+                        )}
 
-                        {!isHighContrast && (
+                        {!isHighContrast && !isTeaModeActive && (
                           <div
                             className={`pointer-events-none absolute inset-x-10 top-6 h-20 rounded-full bg-gradient-to-r ${queueVisual.accentGradient} opacity-10 blur-3xl`}
                           />
@@ -1474,10 +1749,12 @@ export function TotemScreen() {
 
                         <div className="relative flex h-full flex-col items-center">
                           <div
-                            className={`flex h-20 w-20 items-center justify-center rounded-[1.7rem] border shadow-[0_18px_42px_-28px_rgba(37,99,235,0.4)] ${
+                            className={`flex h-20 w-20 items-center justify-center rounded-[1.7rem] border ${
                               isHighContrast
                                 ? "border-white bg-yellow-300 text-black shadow-none"
-                                : `${queueVisual.iconTone} border-white/70`
+                                : isTeaModeActive
+                                  ? "border-slate-200 bg-slate-100 text-slate-700"
+                                  : `${queueVisual.iconTone} border-white/70 shadow-[0_18px_42px_-28px_rgba(37,99,235,0.4)]`
                             }`}
                           >
                             {renderQueueIcon(queueVisual.icon, "h-10 w-10")}
@@ -1486,7 +1763,7 @@ export function TotemScreen() {
                           <div className="mt-5">
                             <p
                               className={`text-[11px] font-black uppercase tracking-[0.24em] ${
-                                isHighContrast ? "text-yellow-300" : "text-sky-700"
+                                isHighContrast ? "text-yellow-300" : isTeaModeActive ? "text-slate-500" : "text-sky-700"
                               }`}
                             >
                               {queueVisual.eyebrow}
@@ -1510,7 +1787,7 @@ export function TotemScreen() {
                                     : "bg-slate-100 text-slate-700"
                               }`}
                             >
-                              {isIssuingCurrentQueue ? "Gerando senha..." : "Toque para emitir senha"}
+                              {isIssuingCurrentQueue ? "Gerando senha..." : isTeaModeActive ? "Emitir senha" : "Toque para emitir senha"}
                             </div>
                           </div>
                         </div>
@@ -1526,6 +1803,10 @@ export function TotemScreen() {
                         className={`absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 disabled:cursor-not-allowed ${
                           isHighContrast
                             ? "border-white bg-black text-white hover:bg-slate-950 disabled:border-slate-500 disabled:bg-slate-800 disabled:text-slate-400"
+                            : isTeaModeActive
+                              ? isInfoOpen
+                                ? "border-slate-300 bg-slate-100 text-slate-700"
+                                : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50"
                             : isInfoOpen
                               ? "border-sky-200 bg-sky-100 text-sky-700 shadow-[0_12px_28px_-24px_rgba(2,132,199,0.45)]"
                               : "border-white/80 bg-white/90 text-slate-500 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.28)] hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
@@ -1544,13 +1825,15 @@ export function TotemScreen() {
                           className={`mt-2 rounded-[1.35rem] px-4 py-3 ${
                             isHighContrast
                               ? "border-2 border-white bg-black text-white"
-                              : "border border-sky-100 bg-white/95 text-slate-700 shadow-[0_18px_48px_-34px_rgba(15,23,42,0.22)]"
+                              : isTeaModeActive
+                                ? "border border-slate-200 bg-white text-slate-700"
+                                : "border border-sky-100 bg-white/95 text-slate-700 shadow-[0_18px_48px_-34px_rgba(15,23,42,0.22)]"
                           }`}
                         >
                           <div className="flex items-start gap-3">
                             <span
                               className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                                isHighContrast ? "bg-yellow-300 text-black" : "bg-sky-100 text-sky-700"
+                                isHighContrast ? "bg-yellow-300 text-black" : isTeaModeActive ? "bg-slate-100 text-slate-700" : "bg-sky-100 text-sky-700"
                               }`}
                             >
                               <InfoIcon className="h-4 w-4" />
@@ -1572,7 +1855,9 @@ export function TotemScreen() {
                 className={`rounded-[2rem] px-5 py-8 text-center text-xl font-semibold ${
                   isHighContrast
                     ? "border-2 border-white bg-black text-white shadow-none"
-                    : "border border-white/70 bg-white/86 text-slate-700 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.18)]"
+                    : isTeaModeActive
+                      ? "border border-slate-200 bg-white text-slate-700"
+                      : "border border-white/70 bg-white/86 text-slate-700 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.18)]"
                 }`}
               >
                 Nenhuma fila encontrada no banco.
